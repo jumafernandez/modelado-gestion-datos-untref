@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>6&nbsp; Consultas – De la EPH a PostgreSQL</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./apendice-csv.html" rel="next">
+<link href="./05-carga.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-389c8454c5e4e6bc782f9b651a3c44a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b44f78f901b27984fc33087947597b98.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./06-consultas.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">De la EPH a PostgreSQL</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Presentación</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">El dataset y las preguntas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-conceptual.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-logico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-fisico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-carga.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-consultas.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Apéndices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-csv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Cómo se armaron los CSV</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-sitio.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Cómo se generó este sitio</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul class="collapse">
+  <li><a href="#un-hogar-con-sus-etiquetas" id="toc-un-hogar-con-sus-etiquetas" class="nav-link active" data-scroll-target="#un-hogar-con-sus-etiquetas"><span class="header-section-number">6.1</span> Un hogar, con sus etiquetas</a></li>
+  <li><a href="#cuántas-personas-representa-la-encuesta" id="toc-cuántas-personas-representa-la-encuesta" class="nav-link" data-scroll-target="#cuántas-personas-representa-la-encuesta"><span class="header-section-number">6.2</span> ¿Cuántas personas representa la encuesta?</a></li>
+  <li><a href="#nivel-educativo-según-el-sexo" id="toc-nivel-educativo-según-el-sexo" class="nav-link" data-scroll-target="#nivel-educativo-según-el-sexo"><span class="header-section-number">6.3</span> Nivel educativo según el sexo</a></li>
+  <li><a href="#hogares-que-alquilan-2018-y-2026" id="toc-hogares-que-alquilan-2018-y-2026" class="nav-link" data-scroll-target="#hogares-que-alquilan-2018-y-2026"><span class="header-section-number">6.4</span> Hogares que alquilan, 2018 y 2026</a></li>
+  <li><a href="#hogares-con-algún-desocupado" id="toc-hogares-con-algún-desocupado" class="nav-link" data-scroll-target="#hogares-con-algún-desocupado"><span class="header-section-number">6.5</span> Hogares con algún desocupado</a></li>
+  <li><a href="#tres-generaciones-bajo-un-mismo-techo" id="toc-tres-generaciones-bajo-un-mismo-techo" class="nav-link" data-scroll-target="#tres-generaciones-bajo-un-mismo-techo"><span class="header-section-number">6.6</span> Tres generaciones bajo un mismo techo</a></li>
+  <li><a href="#los-atributos-derivados-en-una-vista" id="toc-los-atributos-derivados-en-una-vista" class="nav-link" data-scroll-target="#los-atributos-derivados-en-una-vista"><span class="header-section-number">6.7</span> Los atributos derivados, en una vista</a></li>
+  <li><a href="#el-ingreso-per-cápita-trimestre-a-trimestre" id="toc-el-ingreso-per-cápita-trimestre-a-trimestre" class="nav-link" data-scroll-target="#el-ingreso-per-cápita-trimestre-a-trimestre"><span class="header-section-number">6.8</span> El ingreso per cápita, trimestre a trimestre</a></li>
+  <li><a href="#una-vista-materializada" id="toc-una-vista-materializada" class="nav-link" data-scroll-target="#una-vista-materializada"><span class="header-section-number">6.9</span> Una vista materializada</a></li>
+  <li><a href="#las-cinco-preguntas" id="toc-las-cinco-preguntas" class="nav-link" data-scroll-target="#las-cinco-preguntas"><span class="header-section-number">6.10</span> Las cinco preguntas</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-consultas" class="quarto-section-identifier"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>La base está cargada. Ahora respondemos las preguntas del capítulo 1 con lo que vimos en la presentación C04: <code>INNER JOIN</code>, agregaciones, <code>HAVING</code>, <code>IN</code>, vistas y vistas materializadas. Sumamos una herramienta nueva, las expresiones de tabla comunes (<code>WITH</code>), que ordenan las consultas largas. Escribimos las consultas como en C04: un atributo debajo del otro, con alias cortos para las tablas.</p>
+<section id="un-hogar-con-sus-etiquetas" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="un-hogar-con-sus-etiquetas"><span class="header-section-number">6.1</span> Un hogar, con sus etiquetas</h2>
+<p>Empecemos por algo chico: el hogar de cuatro generaciones que vimos en el capítulo 1, ahora desde la base. Los códigos se traducen con un <code>INNER JOIN</code> a cada catálogo, y el sexo, que no tiene catálogo, con un <code>CASE</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> p.componente,</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>       pa.descripcion <span class="kw">AS</span> parentesco,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>       <span class="cf">CASE</span> p.sexo <span class="cf">WHEN</span> <span class="dv">1</span> <span class="cf">THEN</span> <span class="st">'Varón'</span> <span class="cf">ELSE</span> <span class="st">'Mujer'</span> <span class="cf">END</span> <span class="kw">AS</span> sexo,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>       p.edad,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>       ne.descripcion <span class="kw">AS</span> nivel_educativo,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>       ca.descripcion <span class="kw">AS</span> condicion_actividad</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> personas p</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> parentescos pa           <span class="kw">ON</span> p.id_parentesco <span class="op">=</span> pa.<span class="kw">id</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> niveles_educativos ne    <span class="kw">ON</span> p.id_nivel_educativo <span class="op">=</span> ne.<span class="kw">id</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> condiciones_actividad ca <span class="kw">ON</span> p.id_condicion_actividad <span class="op">=</span> ca.<span class="kw">id</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> p.codusu <span class="op">=</span> <span class="st">'TQRMNOSUTHKOTNCDEIJAH00902653'</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> p.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> p.trimestre <span class="op">=</span> <span class="dv">1</span> <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> p.componente;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+6 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+componente
+</th>
+<th style="text-align:left;">
+parentesco
+</th>
+<th style="text-align:left;">
+sexo
+</th>
+<th style="text-align:right;">
+edad
+</th>
+<th style="text-align:left;">
+nivel_educativo
+</th>
+<th style="text-align:left;">
+condicion_actividad
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:left;">
+Jefe/a
+</td>
+<td style="text-align:left;">
+Mujer
+</td>
+<td style="text-align:right;">
+51
+</td>
+<td style="text-align:left;">
+Primario completo
+</td>
+<td style="text-align:left;">
+Inactivo
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:left;">
+Cónyuge/Pareja
+</td>
+<td style="text-align:left;">
+Varón
+</td>
+<td style="text-align:right;">
+56
+</td>
+<td style="text-align:left;">
+Primario completo
+</td>
+<td style="text-align:left;">
+Ocupado
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+Madre/Padre
+</td>
+<td style="text-align:left;">
+Varón
+</td>
+<td style="text-align:right;">
+77
+</td>
+<td style="text-align:left;">
+Primario completo
+</td>
+<td style="text-align:left;">
+Inactivo
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:left;">
+Hijo/Hijastro/a
+</td>
+<td style="text-align:left;">
+Mujer
+</td>
+<td style="text-align:right;">
+34
+</td>
+<td style="text-align:left;">
+Superior universitario completo
+</td>
+<td style="text-align:left;">
+Ocupado
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:left;">
+Hijo/Hijastro/a
+</td>
+<td style="text-align:left;">
+Varón
+</td>
+<td style="text-align:right;">
+22
+</td>
+<td style="text-align:left;">
+Secundario incompleto
+</td>
+<td style="text-align:left;">
+Desocupado
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:left;">
+Nieto/a
+</td>
+<td style="text-align:left;">
+Mujer
+</td>
+<td style="text-align:right;">
+7
+</td>
+<td style="text-align:left;">
+Primario incompleto (incluye educación especial)
+</td>
+<td style="text-align:left;">
+Menor de 10 años
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Con las etiquetas se lee lo que en el CSV eran códigos: el padre de la jefa, la jefa y su cónyuge, sus dos hijos y una nieta. Volvemos sobre este tipo de hogar más adelante.</p>
+</section>
+<section id="cuántas-personas-representa-la-encuesta" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="cuántas-personas-representa-la-encuesta"><span class="header-section-number">6.2</span> ¿Cuántas personas representa la encuesta?</h2>
+<p>Contar filas da el tamaño de la muestra; sumar el ponderador estima la población. El ponderador está en el hogar, así que hace falta unir cada persona con su hogar por la clave completa:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> h.anio,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>       h.trimestre,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> personas_encuestadas,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(h.pondera) <span class="kw">AS</span> poblacion_estimada</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> personas p</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.anio <span class="op">=</span> h.anio</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> h.anio <span class="op">&gt;=</span> <span class="dv">2024</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> h.anio, h.trimestre</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> h.anio, h.trimestre;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+9 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+anio
+</th>
+<th style="text-align:right;">
+trimestre
+</th>
+<th style="text-align:right;">
+personas_encuestadas
+</th>
+<th style="text-align:right;">
+poblacion_estimada
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2024
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+46050
+</td>
+<td style="text-align:right;">
+29593214
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2024
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+47151
+</td>
+<td style="text-align:right;">
+29656342
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2024
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+47564
+</td>
+<td style="text-align:right;">
+29720145
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2024
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+46860
+</td>
+<td style="text-align:right;">
+29783573
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2025
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+45425
+</td>
+<td style="text-align:right;">
+29847178
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2025
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+46086
+</td>
+<td style="text-align:right;">
+29908869
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2025
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+44946
+</td>
+<td style="text-align:right;">
+29970456
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2025
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+43703
+</td>
+<td style="text-align:right;">
+30032745
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2026
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+43739
+</td>
+<td style="text-align:right;">
+30095103
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Unas 44.000 entrevistas por trimestre representan a unos 30 millones de personas: la población de los 31 aglomerados.</p>
+<p>Para llegar a la región hay que recorrer todo el modelo, de personas a regiones. Con <code>UNION ALL</code> agregamos una fila con el total:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> r.nombre <span class="kw">AS</span> region,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(h.pondera) <span class="kw">AS</span> poblacion</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> personas p</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h     <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.anio <span class="op">=</span> h.anio</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                        <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> viviendas v   <span class="kw">ON</span> h.codusu <span class="op">=</span> v.codusu</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> aglomerados a <span class="kw">ON</span> v.id_aglomerado <span class="op">=</span> a.<span class="kw">id</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> regiones r    <span class="kw">ON</span> a.id_region <span class="op">=</span> r.<span class="kw">id</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> h.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> h.trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> r.nombre</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">UNION</span> <span class="kw">ALL</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'Total'</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(h.pondera)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> personas p</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.anio <span class="op">=</span> h.anio</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> h.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> h.trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> poblacion;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+7 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+region
+</th>
+<th style="text-align:right;">
+poblacion
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Patagonia
+</td>
+<td style="text-align:right;">
+1150084
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noreste
+</td>
+<td style="text-align:right;">
+1488531
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cuyo
+</td>
+<td style="text-align:right;">
+1886015
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noroeste
+</td>
+<td style="text-align:right;">
+2875102
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pampeana
+</td>
+<td style="text-align:right;">
+6460415
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Buenos Aires
+</td>
+<td style="text-align:right;">
+16234956
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:right;">
+30095103
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="nivel-educativo-según-el-sexo" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="nivel-educativo-según-el-sexo"><span class="header-section-number">6.3</span> Nivel educativo según el sexo</h2>
+<p>Queremos, para la población de 25 años o más, qué porcentaje de varones y qué porcentaje de mujeres alcanzó cada nivel. La consulta tiene pasos: armar el grupo de adultos, calcular los totales por sexo y dividir. Con <code>WITH</code> cada paso tiene nombre y se lee de arriba hacia abajo:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">WITH</span> adultos <span class="kw">AS</span> (</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">SELECT</span> p.sexo,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>           ne.descripcion <span class="kw">AS</span> nivel,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>           ne.orden,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>           h.pondera</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">FROM</span> personas p</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h            <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.anio <span class="op">=</span> h.anio</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                                   <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">INNER</span> <span class="kw">JOIN</span> niveles_educativos ne <span class="kw">ON</span> p.id_nivel_educativo <span class="op">=</span> ne.<span class="kw">id</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">WHERE</span> h.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> h.trimestre <span class="op">=</span> <span class="dv">1</span> <span class="kw">AND</span> p.edad <span class="op">&gt;=</span> <span class="dv">25</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>),</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>totales <span class="kw">AS</span> (</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">SELECT</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> sexo <span class="op">=</span> <span class="dv">1</span> <span class="cf">THEN</span> pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>) <span class="kw">AS</span> varones,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>           <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> sexo <span class="op">=</span> <span class="dv">2</span> <span class="cf">THEN</span> pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>) <span class="kw">AS</span> mujeres</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">FROM</span> adultos</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.nivel,</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> a.sexo <span class="op">=</span> <span class="dv">1</span> <span class="cf">THEN</span> a.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>             <span class="op">/</span> t.varones, <span class="dv">1</span>) <span class="kw">AS</span> pct_varones,</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> a.sexo <span class="op">=</span> <span class="dv">2</span> <span class="cf">THEN</span> a.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>             <span class="op">/</span> t.mujeres, <span class="dv">1</span>) <span class="kw">AS</span> pct_mujeres</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> adultos a</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="kw">CROSS</span> <span class="kw">JOIN</span> totales t</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> a.orden, a.nivel, t.varones, t.mujeres</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> a.orden;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+7 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+nivel
+</th>
+<th style="text-align:right;">
+pct_varones
+</th>
+<th style="text-align:right;">
+pct_mujeres
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Sin instrucción
+</td>
+<td style="text-align:right;">
+0.4
+</td>
+<td style="text-align:right;">
+0.6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Primario incompleto (incluye educación especial)
+</td>
+<td style="text-align:right;">
+4.9
+</td>
+<td style="text-align:right;">
+4.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Primario completo
+</td>
+<td style="text-align:right;">
+17.3
+</td>
+<td style="text-align:right;">
+15.8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Secundario incompleto
+</td>
+<td style="text-align:right;">
+15.7
+</td>
+<td style="text-align:right;">
+12.7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Secundario completo
+</td>
+<td style="text-align:right;">
+29.5
+</td>
+<td style="text-align:right;">
+28.4
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Superior universitario incompleto
+</td>
+<td style="text-align:right;">
+12.5
+</td>
+<td style="text-align:right;">
+12.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Superior universitario completo
+</td>
+<td style="text-align:right;">
+19.7
+</td>
+<td style="text-align:right;">
+25.8
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Acá se ve para qué servía la columna <code>orden</code> del catálogo: sin ella, «Sin instrucción» (código 7) quedaría al final.</p>
+</section>
+<section id="hogares-que-alquilan-2018-y-2026" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="hogares-que-alquilan-2018-y-2026"><span class="header-section-number">6.4</span> Hogares que alquilan, 2018 y 2026</h2>
+<p>El porcentaje de hogares inquilinos por región, en el primer trimestre de cada año. <code>IN</code> filtra los dos años, y cada <code>CASE</code> dentro de <code>SUM</code> separa un año del otro. Los hogares sin dato de tenencia quedan afuera del cálculo:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> r.nombre <span class="kw">AS</span> region,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> h.anio <span class="op">=</span> <span class="dv">2018</span> <span class="kw">AND</span> h.id_tenencia <span class="op">=</span> <span class="dv">3</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>                   <span class="op">/</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> h.anio <span class="op">=</span> <span class="dv">2018</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>), <span class="dv">1</span>) <span class="kw">AS</span> pct_2018,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> h.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> h.id_tenencia <span class="op">=</span> <span class="dv">3</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                   <span class="op">/</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> h.anio <span class="op">=</span> <span class="dv">2026</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>), <span class="dv">1</span>) <span class="kw">AS</span> pct_2026</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> hogares h</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> viviendas v   <span class="kw">ON</span> h.codusu <span class="op">=</span> v.codusu</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> aglomerados a <span class="kw">ON</span> v.id_aglomerado <span class="op">=</span> a.<span class="kw">id</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> regiones r    <span class="kw">ON</span> a.id_region <span class="op">=</span> r.<span class="kw">id</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> h.trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> h.anio <span class="kw">IN</span> (<span class="dv">2018</span>, <span class="dv">2026</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> h.id_tenencia <span class="kw">IS</span> <span class="kw">NOT</span> <span class="kw">NULL</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> r.nombre</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> pct_2026 <span class="kw">DESC</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+6 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+region
+</th>
+<th style="text-align:right;">
+pct_2018
+</th>
+<th style="text-align:right;">
+pct_2026
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Patagonia
+</td>
+<td style="text-align:right;">
+23.2
+</td>
+<td style="text-align:right;">
+26.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pampeana
+</td>
+<td style="text-align:right;">
+21.9
+</td>
+<td style="text-align:right;">
+23.7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Buenos Aires
+</td>
+<td style="text-align:right;">
+17.5
+</td>
+<td style="text-align:right;">
+21.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cuyo
+</td>
+<td style="text-align:right;">
+18.9
+</td>
+<td style="text-align:right;">
+19.5
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noroeste
+</td>
+<td style="text-align:right;">
+14.5
+</td>
+<td style="text-align:right;">
+15.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noreste
+</td>
+<td style="text-align:right;">
+15.5
+</td>
+<td style="text-align:right;">
+13.8
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="hogares-con-algún-desocupado" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="hogares-con-algún-desocupado"><span class="header-section-number">6.5</span> Hogares con algún desocupado</h2>
+<p>Como dice C04, la mayor potencia de <code>IN</code> aparece con subconsultas. ¿Cuántas personas viven en un hogar donde hay al menos un desocupado? La subconsulta devuelve las claves de esos hogares e <code>IN</code> se queda con todas las personas que los integran:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> personas_encuestadas,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(h.pondera) <span class="kw">AS</span> poblacion</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> personas p</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.anio <span class="op">=</span> h.anio</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> p.anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> p.trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> (p.codusu, p.anio, p.trimestre, p.nro_hogar) <span class="kw">IN</span> (</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">SELECT</span> codusu,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>               anio,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>               trimestre,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>               nro_hogar</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">FROM</span> personas</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">WHERE</span> id_condicion_actividad <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>          <span class="kw">AND</span> anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>      );</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+1 fila
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+personas_encuestadas
+</th>
+<th style="text-align:right;">
+poblacion
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+4914
+</td>
+<td style="text-align:right;">
+4190977
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Como la clave del hogar tiene cuatro columnas, <code>IN</code> compara las cuatro juntas, escritas entre paréntesis.</p>
+</section>
+<section id="tres-generaciones-bajo-un-mismo-techo" class="level2" data-number="6.6">
+<h2 data-number="6.6" class="anchored" data-anchor-id="tres-generaciones-bajo-un-mismo-techo"><span class="header-section-number">6.6</span> Tres generaciones bajo un mismo techo</h2>
+<p>¿En qué aglomerados es más frecuente que convivan tres generaciones o más? El parentesco con el jefe dice a qué generación pertenece cada persona: la madre, el padre o los suegros están una arriba; el jefe, su cónyuge y sus hermanos, en la misma; hijos, yernos y nueras, una abajo; los nietos, dos abajo. Un hogar tiene tres generaciones si sus integrantes cubren al menos tres de esos niveles.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">WITH</span> generaciones <span class="kw">AS</span> (</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">SELECT</span> codusu,</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>           anio,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>           trimestre,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>           nro_hogar,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">COUNT</span>(<span class="kw">DISTINCT</span> <span class="cf">CASE</span> <span class="cf">WHEN</span> id_parentesco <span class="kw">IN</span> (<span class="dv">6</span>, <span class="dv">7</span>)    <span class="cf">THEN</span>  <span class="dv">1</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                               <span class="cf">WHEN</span> id_parentesco <span class="kw">IN</span> (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">8</span>) <span class="cf">THEN</span>  <span class="dv">0</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                               <span class="cf">WHEN</span> id_parentesco <span class="kw">IN</span> (<span class="dv">3</span>, <span class="dv">4</span>)    <span class="cf">THEN</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                               <span class="cf">WHEN</span> id_parentesco <span class="op">=</span> <span class="dv">5</span>          <span class="cf">THEN</span> <span class="op">-</span><span class="dv">2</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>                          <span class="cf">END</span>) <span class="kw">AS</span> cantidad</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">FROM</span> personas</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">WHERE</span> anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">GROUP</span> <span class="kw">BY</span> codusu, anio, trimestre, nro_hogar</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> a.nombre <span class="kw">AS</span> aglomerado,</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> g.cantidad <span class="op">&gt;=</span> <span class="dv">3</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>             <span class="op">/</span> <span class="fu">SUM</span>(h.pondera), <span class="dv">1</span>) <span class="kw">AS</span> pct_tres_generaciones</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> generaciones g</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> hogares h     <span class="kw">ON</span> g.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> g.anio <span class="op">=</span> h.anio</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                        <span class="kw">AND</span> g.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> g.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> viviendas v   <span class="kw">ON</span> h.codusu <span class="op">=</span> v.codusu</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> aglomerados a <span class="kw">ON</span> v.id_aglomerado <span class="op">=</span> a.<span class="kw">id</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> a.nombre</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> pct_tres_generaciones <span class="kw">DESC</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">10</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+10 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+aglomerado
+</th>
+<th style="text-align:right;">
+pct_tres_generaciones
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Formosa
+</td>
+<td style="text-align:right;">
+17.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Salta
+</td>
+<td style="text-align:right;">
+16.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Jujuy-Palpalá
+</td>
+<td style="text-align:right;">
+15.6
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+La Rioja
+</td>
+<td style="text-align:right;">
+13.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Corrientes
+</td>
+<td style="text-align:right;">
+13.0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Tucumán-Tafí Viejo
+</td>
+<td style="text-align:right;">
+12.3
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Resistencia
+</td>
+<td style="text-align:right;">
+11.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Santiago del Estero-La Banda
+</td>
+<td style="text-align:right;">
+11.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran San Luis
+</td>
+<td style="text-align:right;">
+11.7
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Gran Mendoza
+</td>
+<td style="text-align:right;">
+11.2
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Los otros familiares y los no familiares no tienen un nivel definido: el <code>CASE</code> les asigna <code>NULL</code> y <code>COUNT(DISTINCT ...)</code> no los cuenta.</p>
+</section>
+<section id="los-atributos-derivados-en-una-vista" class="level2" data-number="6.7">
+<h2 data-number="6.7" class="anchored" data-anchor-id="los-atributos-derivados-en-una-vista"><span class="header-section-number">6.7</span> Los atributos derivados, en una vista</h2>
+<p>En el modelo decidimos no guardar la cantidad de miembros ni el ingreso per cápita familiar. Una <strong>vista</strong> los calcula cada vez que se los necesita: es una consulta guardada con nombre, que después se usa como si fuera una tabla.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">VIEW</span> ingresos_hogares <span class="kw">AS</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> h.codusu,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>       h.anio,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>       h.trimestre,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>       h.nro_hogar,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> miembros,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>       h.ingreso_total_familiar,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(h.ingreso_total_familiar <span class="op">/</span> <span class="fu">COUNT</span>(<span class="op">*</span>), <span class="dv">2</span>) <span class="kw">AS</span> ingreso_per_capita,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>       h.pondih</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> hogares h</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> personas p <span class="kw">ON</span> h.codusu <span class="op">=</span> p.codusu <span class="kw">AND</span> h.anio <span class="op">=</span> p.anio</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                     <span class="kw">AND</span> h.trimestre <span class="op">=</span> p.trimestre <span class="kw">AND</span> h.nro_hogar <span class="op">=</span> p.nro_hogar</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> h.codusu, h.anio, h.trimestre, h.nro_hogar;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Un detalle que conecta con la normalización: la consulta agrupa solo por la clave primaria de <code>hogares</code> y, aun así, puede mostrar <code>h.ingreso_total_familiar</code> sin agregarlo. PostgreSQL acepta eso porque sabe que la clave primaria determina el resto de las columnas. Es una dependencia funcional, y el motor la usa.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> ingresos_hogares</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">LIMIT</span> <span class="dv">5</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+5 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+codusu
+</th>
+<th style="text-align:right;">
+anio
+</th>
+<th style="text-align:right;">
+trimestre
+</th>
+<th style="text-align:right;">
+nro_hogar
+</th>
+<th style="text-align:right;">
+miembros
+</th>
+<th style="text-align:right;">
+ingreso_total_familiar
+</th>
+<th style="text-align:right;">
+ingreso_per_capita
+</th>
+<th style="text-align:right;">
+pondih
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+TQRMNOPPQHJKKRCDEGPDJ00658291
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+67000
+</td>
+<td style="text-align:right;">
+67000
+</td>
+<td style="text-align:right;">
+234
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TQRMNOPPQHJKKRCDEGPDJ00658291
+</td>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+33600
+</td>
+<td style="text-align:right;">
+16800
+</td>
+<td style="text-align:right;">
+80
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TQRMNOPPQHJKKRCDEGPDJ00658291
+</td>
+<td style="text-align:right;">
+2021
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+36000
+</td>
+<td style="text-align:right;">
+18000
+</td>
+<td style="text-align:right;">
+143
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TQRMNOPPQHJKKRCDEGPDJ00658291
+</td>
+<td style="text-align:right;">
+2021
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+47000
+</td>
+<td style="text-align:right;">
+23500
+</td>
+<td style="text-align:right;">
+150
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+TQRMNOPPQHJKKSCDEHJGH00790191
+</td>
+<td style="text-align:right;">
+2022
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+36000
+</td>
+<td style="text-align:right;">
+36000
+</td>
+<td style="text-align:right;">
+184
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="el-ingreso-per-cápita-trimestre-a-trimestre" class="level2" data-number="6.8">
+<h2 data-number="6.8" class="anchored" data-anchor-id="el-ingreso-per-cápita-trimestre-a-trimestre"><span class="header-section-number">6.8</span> El ingreso per cápita, trimestre a trimestre</h2>
+<p>Para los ingresos del hogar INDEC indica usar <code>PONDIH</code>, el ponderador corregido por no respuesta. El promedio ponderado es la suma de cada valor por su peso, dividida la suma de los pesos:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> anio,</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>       trimestre,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(ingreso_per_capita <span class="op">*</span> pondih) <span class="op">/</span> <span class="fu">SUM</span>(pondih)) <span class="kw">AS</span> ipcf_promedio</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> ingresos_hogares</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> anio, trimestre</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> anio;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+9 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+anio
+</th>
+<th style="text-align:right;">
+trimestre
+</th>
+<th style="text-align:right;">
+ipcf_promedio
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+2018
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+12795
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2019
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+16767
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2020
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+25313
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2021
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+30839
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2022
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+48514
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2023
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+95979
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2024
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+284874
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2025
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+650984
+</td>
+</tr>
+<tr>
+<td style="text-align:right;">
+2026
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+870568
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Los hogares que no respondieron tienen <code>NULL</code> en el ingreso y 0 en <code>PONDIH</code>, así que no pesan en el resultado.</p>
+<p>Como el sitio se genera con R, el resultado de una consulta también se puede guardar en un <code>data.frame</code> y graficar. Abrí el código para ver cómo:</p>
+<div class="cell" data-output.var="ipcf">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> anio <span class="op">+</span> (trimestre <span class="op">-</span> <span class="dv">1</span>) <span class="op">/</span> <span class="fl">4.0</span> <span class="kw">AS</span> periodo,</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(ingreso_per_capita <span class="op">*</span> pondih) <span class="op">/</span> <span class="fu">SUM</span>(pondih) <span class="kw">AS</span> ipcf_promedio</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> ingresos_hogares</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> anio, trimestre</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> anio, trimestre;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Código R del gráfico</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mar =</span> <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">6</span>, <span class="dv">1</span>, <span class="dv">1</span>), <span class="at">family =</span> <span class="st">"sans"</span>, <span class="at">las =</span> <span class="dv">1</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ipcf<span class="sc">$</span>periodo, ipcf<span class="sc">$</span>ipcf_promedio, <span class="at">type =</span> <span class="st">"l"</span>, <span class="at">log =</span> <span class="st">"y"</span>, <span class="at">lwd =</span> <span class="fl">2.5</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="st">"#E08A1E"</span>, <span class="at">xlab =</span> <span class="st">""</span>, <span class="at">ylab =</span> <span class="st">""</span>, <span class="at">axes =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">points</span>(ipcf<span class="sc">$</span>periodo, ipcf<span class="sc">$</span>ipcf_promedio, <span class="at">pch =</span> <span class="dv">19</span>, <span class="at">cex =</span> .<span class="dv">6</span>, <span class="at">col =</span> <span class="st">"#1C1A3A"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">1</span>, <span class="at">at =</span> <span class="dv">2018</span><span class="sc">:</span><span class="dv">2026</span>, <span class="at">col =</span> <span class="st">"#6B6880"</span>, <span class="at">col.axis =</span> <span class="st">"#2A2838"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>marcas <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">10e3</span>, <span class="fl">30e3</span>, <span class="fl">100e3</span>, <span class="fl">300e3</span>, <span class="fl">1e6</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">axis</span>(<span class="dv">2</span>, <span class="at">at =</span> marcas, <span class="at">labels =</span> <span class="fu">format</span>(marcas, <span class="at">big.mark =</span> <span class="st">"."</span>, <span class="at">scientific =</span> <span class="cn">FALSE</span>),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>     <span class="at">col =</span> <span class="st">"#6B6880"</span>, <span class="at">col.axis =</span> <span class="st">"#2A2838"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">grid</span>(<span class="at">nx =</span> <span class="cn">NA</span>, <span class="at">ny =</span> <span class="cn">NULL</span>, <span class="at">col =</span> <span class="st">"#E6E1D8"</span>, <span class="at">lty =</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-ipcf" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-ipcf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="06-consultas_files/figure-html/fig-ipcf-1.png" class="img-fluid figure-img" width="768">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ipcf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figura&nbsp;6.1: Ingreso per cápita familiar promedio, en pesos corrientes (escala logarítmica).
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Son pesos corrientes: la curva muestra sobre todo la inflación. Para hablar de ingresos reales hay que deflactar con el índice de precios, que se puede traer de una API pública. Queda como puente hacia la unidad 5.</p>
+</section>
+<section id="una-vista-materializada" class="level2" data-number="6.9">
+<h2 data-number="6.9" class="anchored" data-anchor-id="una-vista-materializada"><span class="header-section-number">6.9</span> Una vista materializada</h2>
+<p>La vista anterior se recalcula cada vez que se consulta. Para un resumen que se mira seguido y cambia poco, conviene una <strong>vista materializada</strong>: se calcula una vez y el resultado queda guardado.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">MATERIALIZED</span> <span class="kw">VIEW</span> resumen_trimestral <span class="kw">AS</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> r.nombre <span class="kw">AS</span> region,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>       h.anio,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>       h.trimestre,</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">SUM</span>(h.pondera) <span class="kw">AS</span> hogares,</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fl">100.0</span> <span class="op">*</span> <span class="fu">SUM</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> h.id_tenencia <span class="op">=</span> <span class="dv">3</span> <span class="cf">THEN</span> h.pondera <span class="cf">ELSE</span> <span class="dv">0</span> <span class="cf">END</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>             <span class="op">/</span> <span class="fu">SUM</span>(h.pondera), <span class="dv">1</span>) <span class="kw">AS</span> pct_inquilinos,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>       <span class="fu">ROUND</span>(<span class="fu">SUM</span>(i.ingreso_per_capita <span class="op">*</span> i.pondih) <span class="op">/</span> <span class="fu">SUM</span>(i.pondih)) <span class="kw">AS</span> ipcf_promedio</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> hogares h</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> ingresos_hogares i <span class="kw">ON</span> h.codusu <span class="op">=</span> i.codusu <span class="kw">AND</span> h.anio <span class="op">=</span> i.anio</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>                             <span class="kw">AND</span> h.trimestre <span class="op">=</span> i.trimestre <span class="kw">AND</span> h.nro_hogar <span class="op">=</span> i.nro_hogar</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> viviendas v   <span class="kw">ON</span> h.codusu <span class="op">=</span> v.codusu</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> aglomerados a <span class="kw">ON</span> v.id_aglomerado <span class="op">=</span> a.<span class="kw">id</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> regiones r    <span class="kw">ON</span> a.id_region <span class="op">=</span> r.<span class="kw">id</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> r.nombre, h.anio, h.trimestre;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Consultarla es leer 198 filas ya calculadas, en lugar de recorrer más de un millón y medio:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> region,</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>       hogares,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>       pct_inquilinos,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>       ipcf_promedio</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> resumen_trimestral</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> anio <span class="op">=</span> <span class="dv">2026</span> <span class="kw">AND</span> trimestre <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">ORDER</span> <span class="kw">BY</span> hogares <span class="kw">DESC</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+6 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+region
+</th>
+<th style="text-align:right;">
+hogares
+</th>
+<th style="text-align:right;">
+pct_inquilinos
+</th>
+<th style="text-align:right;">
+ipcf_promedio
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Gran Buenos Aires
+</td>
+<td style="text-align:right;">
+5400681
+</td>
+<td style="text-align:right;">
+21.0
+</td>
+<td style="text-align:right;">
+916528
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Pampeana
+</td>
+<td style="text-align:right;">
+2427613
+</td>
+<td style="text-align:right;">
+23.7
+</td>
+<td style="text-align:right;">
+899239
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noroeste
+</td>
+<td style="text-align:right;">
+869782
+</td>
+<td style="text-align:right;">
+15.0
+</td>
+<td style="text-align:right;">
+669758
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Cuyo
+</td>
+<td style="text-align:right;">
+608539
+</td>
+<td style="text-align:right;">
+19.5
+</td>
+<td style="text-align:right;">
+698870
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Noreste
+</td>
+<td style="text-align:right;">
+482117
+</td>
+<td style="text-align:right;">
+13.8
+</td>
+<td style="text-align:right;">
+585728
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Patagonia
+</td>
+<td style="text-align:right;">
+419018
+</td>
+<td style="text-align:right;">
+25.9
+</td>
+<td style="text-align:right;">
+1106020
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>El precio es que no se entera sola de los cambios. Cuando INDEC publique el segundo trimestre de 2026 y lo carguemos, hay que actualizarla:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">REFRESH</span> <span class="kw">MATERIALIZED</span> <span class="kw">VIEW</span> resumen_trimestral;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="las-cinco-preguntas" class="level2" data-number="6.10">
+<h2 data-number="6.10" class="anchored" data-anchor-id="las-cinco-preguntas"><span class="header-section-number">6.10</span> Las cinco preguntas</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Pregunta</th>
+<th>Dónde quedó</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Población por región y trimestre</td>
+<td><code>INNER JOIN</code> de personas a regiones, <code>SUM(pondera)</code> y <code>UNION ALL</code> para el total</td>
+</tr>
+<tr class="even">
+<td>Nivel educativo según el sexo</td>
+<td><code>WITH</code> en dos pasos y el <code>orden</code> del catálogo</td>
+</tr>
+<tr class="odd">
+<td>Hogares que alquilan</td>
+<td><code>CASE</code> dentro de <code>SUM</code> para comparar 2018 con 2026</td>
+</tr>
+<tr class="even">
+<td>Tres generaciones</td>
+<td><code>WITH</code>, <code>COUNT(DISTINCT ...)</code> sobre un <code>CASE</code></td>
+</tr>
+<tr class="odd">
+<td>Ingreso per cápita</td>
+<td>Vista con los atributos derivados y promedio ponderado con <code>PONDIH</code></td>
+</tr>
+</tbody>
+</table>
+<p>El mismo modelo sirve para lo que viene: en la unidad 4 estas tablas se pueden exportar a Parquet y consultar con DuckDB, y en la unidad 6 vemos cómo se reorganizan datos como estos en un modelo dimensional.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./05-carga.html" class="pagination-link" aria-label="Carga masiva">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./apendice-csv.html" class="pagination-link" aria-label="Cómo se armaron los CSV">
+        <span class="nav-page-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Cómo se armaron los CSV</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>Modelado y Gestión de Datos · UNTREF · 2026</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Datos: Encuesta Permanente de Hogares, INDEC</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

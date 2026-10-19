@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>2&nbsp; Modelo conceptual – De la EPH a PostgreSQL</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./03-logico.html" rel="next">
+<link href="./01-dataset.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-389c8454c5e4e6bc782f9b651a3c44a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b44f78f901b27984fc33087947597b98.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./02-conceptual.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">De la EPH a PostgreSQL</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Presentación</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">El dataset y las preguntas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-conceptual.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-logico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-fisico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-carga.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-consultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Apéndices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-csv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Cómo se armaron los CSV</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-sitio.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Cómo se generó este sitio</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul class="collapse">
+  <li><a href="#identificar-entidades" id="toc-identificar-entidades" class="nav-link active" data-scroll-target="#identificar-entidades"><span class="header-section-number">2.1</span> Identificar entidades</a></li>
+  <li><a href="#definir-las-relaciones-y-su-cardinalidad" id="toc-definir-las-relaciones-y-su-cardinalidad" class="nav-link" data-scroll-target="#definir-las-relaciones-y-su-cardinalidad"><span class="header-section-number">2.2</span> Definir las relaciones y su cardinalidad</a></li>
+  <li><a href="#incorporar-los-atributos" id="toc-incorporar-los-atributos" class="nav-link" data-scroll-target="#incorporar-los-atributos"><span class="header-section-number">2.3</span> Incorporar los atributos</a></li>
+  <li><a href="#esquematizar-el-der" id="toc-esquematizar-el-der" class="nav-link" data-scroll-target="#esquematizar-el-der"><span class="header-section-number">2.4</span> Esquematizar el DER</a></li>
+  <li><a href="#validar-con-expertos-del-dominio" id="toc-validar-con-expertos-del-dominio" class="nav-link" data-scroll-target="#validar-con-expertos-del-dominio"><span class="header-section-number">2.5</span> Validar con expertos del dominio</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-conceptual" class="quarto-section-identifier"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>El modelo conceptual describe qué hay en el dominio, sin pensar todavía en tablas ni en PostgreSQL. Usamos el diagrama entidad-relación (DER) con la simbología de la presentación C02-2 y seguimos sus pasos: identificar entidades, definir las relaciones, determinar su cardinalidad, incorporar los atributos principales, esquematizar el DER y validarlo con quien conoce el dominio.</p>
+<section id="identificar-entidades" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="identificar-entidades"><span class="header-section-number">2.1</span> Identificar entidades</h2>
+<p>Releyendo el capítulo anterior aparecen cinco cosas sobre las que queremos guardar datos. Como en C02-2, las nombramos en plural:</p>
+<ul>
+<li><strong>regiones</strong> y <strong>aglomerados</strong>: la geografía de la encuesta.</li>
+<li><strong>viviendas</strong>: lo que se visita. Cada una está en un aglomerado y se encuesta en varios trimestres.</li>
+<li><strong>hogares</strong>: quienes comparten la vivienda y los gastos de alimentación. Puede haber más de un hogar por vivienda.</li>
+<li><strong>personas</strong>: cada integrante de un hogar.</li>
+</ul>
+<p>Viviendas y hogares parecen lo mismo, pero no lo son: en la muestra hay viviendas donde se relevaron hasta siete hogares en un mismo trimestre, y la vivienda sigue siendo la misma cuando se la vuelve a visitar meses después.</p>
+<section id="entidades-débiles" class="level3">
+<h3 class="anchored" data-anchor-id="entidades-débiles">Entidades débiles</h3>
+<p>Un hogar no tiene un atributo clave propio: <code>NRO_HOGAR</code> vale 1 en casi todos los hogares de la muestra. Lo que lo identifica es <strong>la vivienda donde se relevó</strong> más el año, el trimestre y su número. Los hogares son una <strong>entidad débil</strong> y las viviendas, su entidad de identificación, igual que los dependientes y los empleados en el ejemplo de C02-2.</p>
+<p>Con las personas pasa lo mismo un nivel más abajo: <code>COMPONENTE</code> es el número de orden dentro del hogar, así que las personas son una entidad débil respecto de los hogares.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Nota</span>Una decisión de modelado
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Tratamos cada trimestre como un relevamiento distinto: el hogar que se encuestó en el primer trimestre y el mismo hogar en el segundo son dos ocurrencias de hogares. Seguir a los hogares a lo largo del panel es posible, pero pide otro modelo y ninguna de nuestras preguntas lo necesita.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="definir-las-relaciones-y-su-cardinalidad" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="definir-las-relaciones-y-su-cardinalidad"><span class="header-section-number">2.2</span> Definir las relaciones y su cardinalidad</h2>
+<p>Las relaciones se nombran con un verbo, como «solicitan» o «incluyen» en el ejemplo de la biblioteca. Las cuatro son 1:N:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Relación</th>
+<th>Entre</th>
+<th>Se lee</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>agrupan</td>
+<td>regiones (1) y aglomerados (N)</td>
+<td>Una región agrupa muchos aglomerados; cada aglomerado está en una sola región</td>
+</tr>
+<tr class="even">
+<td>contienen</td>
+<td>aglomerados (1) y viviendas (N)</td>
+<td>Un aglomerado contiene muchas viviendas; cada vivienda está en un solo aglomerado</td>
+</tr>
+<tr class="odd">
+<td>albergan</td>
+<td>viviendas (1) y hogares (N)</td>
+<td>En una vivienda se relevan muchos hogares; cada hogar se releva en una vivienda</td>
+</tr>
+<tr class="even">
+<td>integran</td>
+<td>personas (N) y hogares (1)</td>
+<td>Un hogar tiene una o más personas; cada persona integra un hogar</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="incorporar-los-atributos" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="incorporar-los-atributos"><span class="header-section-number">2.3</span> Incorporar los atributos</h2>
+<p>Los atributos clave van subrayados. En las entidades débiles, la parte de la clave que aporta la propia entidad (el discriminador) va subrayada con línea punteada, como en Elmasri y Navathe, la bibliografía de C02-2.</p>
+<p>Hay dos <strong>atributos derivados</strong>, que se dibujan con borde punteado porque se pueden obtener de otros datos:</p>
+<ul>
+<li>la <strong>cantidad de miembros</strong> del hogar, que sale de contar sus personas;</li>
+<li>el <strong>ingreso per cápita familiar</strong>, que es el ingreso total familiar dividido por la cantidad de miembros.</li>
+</ul>
+<p>Las variables codificadas, como la tenencia de la vivienda o el nivel educativo, por ahora son simplemente atributos. Cómo implementarlas es una decisión del modelo lógico.</p>
+</section>
+<section id="esquematizar-el-der" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="esquematizar-el-der"><span class="header-section-number">2.4</span> Esquematizar el DER</h2>
+<div class="cell" data-fig-width="9.4" data-fig-height="5.5" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-der" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-der-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<svg width="902" height="528" viewbox="0.00 0.00 927.08 540.80" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" style="; max-width: none; max-height: none">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 536.8)">
+<title>der</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-536.8 923.08,-536.8 923.08,4 -4,4"></polygon>
+<!-- regiones&#45;&#45;agrupan -->
+<g id="edge1" class="edge">
+<title>regiones--agrupan</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M118.32,-428.4C136.16,-428.4 157.29,-428.4 176.26,-428.4"></path>
+<text text-anchor="middle" x="143.67" y="-432.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">1</text>
+</g>
+<!-- regiones&#45;&#45;r_id -->
+<g id="edge9" class="edge">
+<title>regiones--r_id</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M66.71,-446.72C57.87,-461.88 45.41,-483.24 36.82,-497.97"></path>
+</g>
+<!-- regiones&#45;&#45;r_nom -->
+<g id="edge10" class="edge">
+<title>regiones--r_nom</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M89.62,-446.72C99.72,-461.88 113.96,-483.24 123.78,-497.97"></path>
+</g>
+<!-- aglomerados&#45;&#45;contienen -->
+<g id="edge3" class="edge">
+<title>aglomerados--contienen</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M447.83,-428.4C462.19,-428.4 477.8,-428.4 492.49,-428.4"></path>
+<text text-anchor="middle" x="466.54" y="-432.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">1</text>
+</g>
+<!-- aglomerados&#45;&#45;a_id -->
+<g id="edge11" class="edge">
+<title>aglomerados--a_id</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M383.51,-446.72C374.67,-461.88 362.21,-483.24 353.62,-497.97"></path>
+</g>
+<!-- aglomerados&#45;&#45;a_nom -->
+<g id="edge12" class="edge">
+<title>aglomerados--a_nom</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M406.42,-446.72C416.52,-461.88 430.76,-483.24 440.58,-497.97"></path>
+</g>
+<!-- viviendas&#45;&#45;albergan -->
+<g id="edge5" class="edge">
+<title>viviendas--albergan</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M703.8,-410.34C703.8,-388.53 703.8,-351.84 703.8,-328.29"></path>
+<text text-anchor="middle" x="694.77" y="-373.21" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a"> &nbsp;&nbsp;1</text>
+</g>
+<!-- viviendas&#45;&#45;v_cod -->
+<g id="edge13" class="edge">
+<title>viviendas--v_cod</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M703.8,-446.72C703.8,-461.48 703.8,-482.12 703.8,-496.8"></path>
+</g>
+<!-- hogares&#45;&#45;integran -->
+<g id="edge7" class="edge">
+<title>hogares--integran</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M660.19,-183.6C625.49,-183.6 576.43,-183.6 537.29,-183.6"></path>
+<text text-anchor="middle" x="595.13" y="-187.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">1</text>
+</g>
+<!-- hogares&#45;&#45;h_anio -->
+<g id="edge14" class="edge">
+<title>hogares--h_anio</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M738.67,-205.63C764.64,-222.02 799.17,-243.83 820.63,-257.39"></path>
+</g>
+<!-- hogares&#45;&#45;h_trim -->
+<g id="edge15" class="edge">
+<title>hogares--h_trim</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M747.4,-192.68C776.9,-198.83 815.3,-206.83 842.54,-212.51"></path>
+</g>
+<!-- hogares&#45;&#45;h_nro -->
+<g id="edge16" class="edge">
+<title>hogares--h_nro</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M747.4,-178.15C774.5,-174.76 809.11,-170.44 835.68,-167.11"></path>
+</g>
+<!-- hogares&#45;&#45;h_ten -->
+<g id="edge17" class="edge">
+<title>hogares--h_ten</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M745.84,-161.53C771.07,-148.28 802.29,-131.89 823.48,-120.77"></path>
+</g>
+<!-- hogares&#45;&#45;h_itf -->
+<g id="edge18" class="edge">
+<title>hogares--h_itf</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M719.05,-161.36C735.81,-136.92 762.41,-98.13 777.9,-75.54"></path>
+</g>
+<!-- hogares&#45;&#45;h_pon -->
+<g id="edge19" class="edge">
+<title>hogares--h_pon</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M699.11,-161.32C693.43,-134.36 684,-89.53 678.77,-64.71"></path>
+</g>
+<!-- hogares&#45;&#45;h_pih -->
+<g id="edge20" class="edge">
+<title>hogares--h_pih</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M677.84,-161.46C653.84,-140.99 618.87,-111.16 598.3,-93.61"></path>
+</g>
+<!-- hogares&#45;&#45;h_mie -->
+<g id="edge21" class="edge">
+<title>hogares--h_mie</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M670.76,-205.63C648.41,-220.52 619.37,-239.89 598.99,-253.47"></path>
+</g>
+<!-- hogares&#45;&#45;h_ipc -->
+<g id="edge22" class="edge">
+<title>hogares--h_ipc</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M721.28,-205.93C747.26,-239.13 795.55,-300.83 819.37,-331.27"></path>
+</g>
+<!-- personas&#45;&#45;p_comp -->
+<g id="edge23" class="edge">
+<title>personas--p_comp</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M249.83,-205.78C254.85,-222.11 261.59,-244.02 266.28,-259.25"></path>
+</g>
+<!-- personas&#45;&#45;p_par -->
+<g id="edge24" class="edge">
+<title>personas--p_par</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M215.7,-205.78C194.81,-222.76 166.48,-245.77 147.7,-261.03"></path>
+</g>
+<!-- personas&#45;&#45;p_sexo -->
+<g id="edge25" class="edge">
+<title>personas--p_sexo</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M196.24,-192.59C160.07,-199.55 111.33,-208.92 81.81,-214.6"></path>
+</g>
+<!-- personas&#45;&#45;p_edad -->
+<g id="edge26" class="edge">
+<title>personas--p_edad</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M196.24,-176.41C160.29,-170.88 111.91,-163.43 82.34,-158.88"></path>
+</g>
+<!-- personas&#45;&#45;p_niv -->
+<g id="edge27" class="edge">
+<title>personas--p_niv</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M202.62,-161.57C174.75,-146.38 138.37,-126.53 113.41,-112.92"></path>
+</g>
+<!-- personas&#45;&#45;p_est -->
+<g id="edge28" class="edge">
+<title>personas--p_est</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M228.17,-161.35C209.71,-133.67 178.56,-86.94 161.48,-61.32"></path>
+</g>
+<!-- personas&#45;&#45;p_p21 -->
+<g id="edge29" class="edge">
+<title>personas--p_p21</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M275.68,-161.54C301.73,-143.96 337.7,-119.68 361.62,-103.53"></path>
+</g>
+<!-- personas&#45;&#45;p_p47 -->
+<g id="edge30" class="edge">
+<title>personas--p_p47</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M250.77,-161.27C262.25,-128.25 283.55,-67.02 294.19,-36.42"></path>
+</g>
+<!-- agrupan&#45;&#45;aglomerados -->
+<g id="edge2" class="edge">
+<title>agrupan--aglomerados</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M281,-428.4C299.95,-428.4 321.37,-428.4 340.43,-428.4"></path>
+<text text-anchor="middle" x="306.02" y="-432.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">N</text>
+</g>
+<!-- contienen&#45;&#45;viviendas -->
+<g id="edge4" class="edge">
+<title>contienen--viviendas</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M612.79,-428.4C628.77,-428.4 645.7,-428.4 660.58,-428.4"></path>
+<text text-anchor="middle" x="631.99" y="-432.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">N</text>
+</g>
+<!-- albergan&#45;&#45;hogares -->
+<g id="edge6" class="edge">
+<title>albergan--hogares</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M701.8,-283.55C701.8,-261.47 701.8,-227.94 701.8,-205.91"></path>
+<path fill="none" stroke="transparent" stroke-width="1.2" d="M703.8,-283.55C703.8,-261.47 703.8,-227.94 703.8,-205.91"></path>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M705.8,-283.55C705.8,-261.47 705.8,-227.94 705.8,-205.91"></path>
+<text text-anchor="middle" x="693.69" y="-248.63" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a"> &nbsp;&nbsp;N</text>
+</g>
+<!-- integran&#45;&#45;personas -->
+<g id="edge8" class="edge">
+<title>integran--personas</title>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M409.53,-185.6C371.57,-185.6 324.27,-185.6 289.79,-185.6"></path>
+<path fill="none" stroke="transparent" stroke-width="1.2" d="M409.53,-183.6C371.57,-183.6 324.27,-183.6 289.79,-183.6"></path>
+<path fill="none" stroke="#1c1a3a" stroke-width="1.2" d="M409.53,-181.6C371.57,-181.6 324.27,-181.6 289.79,-181.6"></path>
+<text text-anchor="middle" x="344.97" y="-187.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#a3540a">N</text>
+</g>
+<!-- regiones -->
+<g id="node1" class="node">
+<title>regiones</title>
+<polygon fill="#fdf0dc" stroke="#1c1a3a" stroke-width="1.2" points="118.27,-446.4 36.53,-446.4 36.53,-410.4 118.27,-410.4 118.27,-446.4"></polygon>
+<text text-anchor="middle" x="77.4" y="-424.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">regiones</text>
+</g>
+<!-- aglomerados -->
+<g id="node2" class="node">
+<title>aglomerados</title>
+<polygon fill="#fdf0dc" stroke="#1c1a3a" stroke-width="1.2" points="447.86,-446.4 340.54,-446.4 340.54,-410.4 447.86,-410.4 447.86,-446.4"></polygon>
+<text text-anchor="middle" x="394.2" y="-424.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">aglomerados</text>
+</g>
+<!-- viviendas -->
+<g id="node3" class="node">
+<title>viviendas</title>
+<polygon fill="#fdf0dc" stroke="#1c1a3a" stroke-width="1.2" points="747,-446.4 660.6,-446.4 660.6,-410.4 747,-410.4 747,-446.4"></polygon>
+<text text-anchor="middle" x="703.8" y="-424.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">viviendas</text>
+</g>
+<!-- hogares -->
+<g id="node4" class="node">
+<title>hogares</title>
+<polygon fill="#fdf0dc" stroke="#1c1a3a" stroke-width="1.2" points="743.28,-201.6 664.32,-201.6 664.32,-165.6 743.28,-165.6 743.28,-201.6"></polygon>
+<polygon fill="none" stroke="#1c1a3a" stroke-width="1.2" points="747.28,-205.6 660.32,-205.6 660.32,-161.6 747.28,-161.6 747.28,-205.6"></polygon>
+<text text-anchor="middle" x="703.8" y="-179.7" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">hogares</text>
+</g>
+<!-- personas -->
+<g id="node5" class="node">
+<title>personas</title>
+<polygon fill="#fdf0dc" stroke="#1c1a3a" stroke-width="1.2" points="285.96,-201.6 200.04,-201.6 200.04,-165.6 285.96,-165.6 285.96,-201.6"></polygon>
+<polygon fill="none" stroke="#1c1a3a" stroke-width="1.2" points="289.98,-205.6 196.02,-205.6 196.02,-161.6 289.98,-161.6 289.98,-205.6"></polygon>
+<text text-anchor="middle" x="243" y="-179.7" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">personas</text>
+</g>
+<!-- agrupan -->
+<g id="node6" class="node">
+<title>agrupan</title>
+<polygon fill="#eceaf5" stroke="#1c1a3a" stroke-width="1.2" points="228.6,-446.4 176.27,-428.4 228.6,-410.4 280.93,-428.4 228.6,-446.4"></polygon>
+<text text-anchor="middle" x="228.6" y="-424.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">agrupan</text>
+</g>
+<!-- contienen -->
+<g id="node7" class="node">
+<title>contienen</title>
+<polygon fill="#eceaf5" stroke="#1c1a3a" stroke-width="1.2" points="552.6,-446.4 492.53,-428.4 552.6,-410.4 612.67,-428.4 552.6,-446.4"></polygon>
+<text text-anchor="middle" x="552.6" y="-424.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">contienen</text>
+</g>
+<!-- albergan -->
+<g id="node8" class="node">
+<title>albergan</title>
+<polygon fill="#eceaf5" stroke="#1c1a3a" stroke-width="1.2" points="703.8,-324.17 648.77,-306 703.8,-287.83 758.83,-306 703.8,-324.17"></polygon>
+<polygon fill="none" stroke="#1c1a3a" stroke-width="1.2" points="703.8,-328.42 635.9,-306 703.8,-283.58 771.7,-306 703.8,-328.42"></polygon>
+<text text-anchor="middle" x="703.8" y="-302.1" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">albergan</text>
+</g>
+<!-- integran -->
+<g id="node9" class="node">
+<title>integran</title>
+<polygon fill="#eceaf5" stroke="#1c1a3a" stroke-width="1.2" points="473.4,-201.79 421.84,-183.6 473.4,-165.41 524.96,-183.6 473.4,-201.79"></polygon>
+<polygon fill="none" stroke="#1c1a3a" stroke-width="1.2" points="473.4,-206.08 409.7,-183.6 473.4,-161.12 537.1,-183.6 473.4,-206.08"></polygon>
+<text text-anchor="middle" x="473.4" y="-179.7" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">integran</text>
+</g>
+<!-- r_id -->
+<g id="node10" class="node">
+<title>r_id</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="27" cy="-514.8" rx="27" ry="18"></ellipse>
+<text text-anchor="start" x="21.94" y="-511.9" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="13.00" fill="#1c1a3a">id</text>
+</g>
+<!-- r_nom -->
+<g id="node11" class="node">
+<title>r_nom</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="135" cy="-514.8" rx="31.09" ry="18"></ellipse>
+<text text-anchor="middle" x="135" y="-510.9" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">nombre</text>
+</g>
+<!-- a_id -->
+<g id="node12" class="node">
+<title>a_id</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="343.8" cy="-514.8" rx="27" ry="18"></ellipse>
+<text text-anchor="start" x="338.74" y="-511.9" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="13.00" fill="#1c1a3a">id</text>
+</g>
+<!-- a_nom -->
+<g id="node13" class="node">
+<title>a_nom</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="451.8" cy="-514.8" rx="31.09" ry="18"></ellipse>
+<text text-anchor="middle" x="451.8" y="-510.9" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">nombre</text>
+</g>
+<!-- v_cod -->
+<g id="node14" class="node">
+<title>v_cod</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="703.8" cy="-514.8" rx="29.52" ry="18"></ellipse>
+<text text-anchor="start" x="682.84" y="-511.9" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="13.00" fill="#1c1a3a">codusu</text>
+</g>
+<!-- h_anio -->
+<g id="node15" class="node">
+<title>h_anio</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="840.6" cy="-270" rx="27" ry="18"></ellipse>
+<polyline fill="none" stroke="#1c1a3a" stroke-dasharray="5,2" points="829.6,-261 852.6,-261 "></polyline>
+<text text-anchor="start" x="830.26" y="-265.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">año</text>
+</g>
+<!-- h_trim -->
+<g id="node16" class="node">
+<title>h_trim</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="876.6" cy="-219.6" rx="36.87" ry="18"></ellipse>
+<polyline fill="none" stroke="#1c1a3a" stroke-dasharray="5,2" points="850.6,-210.6 902.6,-210.6 "></polyline>
+<text text-anchor="start" x="851.32" y="-214.9" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">trimestre</text>
+</g>
+<!-- h_nro -->
+<g id="node17" class="node">
+<title>h_nro</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="876.6" cy="-162" rx="42.45" ry="18"></ellipse>
+<polyline fill="none" stroke="#1c1a3a" stroke-dasharray="5,2" points="846.6,-153 907.6,-153 "></polyline>
+<text text-anchor="start" x="847.47" y="-157.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">nro. hogar</text>
+</g>
+<!-- h_ten -->
+<g id="node18" class="node">
+<title>h_ten</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="847.8" cy="-108" rx="34.13" ry="18"></ellipse>
+<text text-anchor="middle" x="847.8" y="-104.1" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">tenencia</text>
+</g>
+<!-- h_itf -->
+<g id="node19" class="node">
+<title>h_itf</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="790.2" cy="-57.6" rx="74.22" ry="18"></ellipse>
+<text text-anchor="middle" x="790.2" y="-53.7" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">ingreso total familiar</text>
+</g>
+<!-- h_pon -->
+<g id="node20" class="node">
+<title>h_pon</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="675" cy="-46.8" rx="33.42" ry="18"></ellipse>
+<text text-anchor="middle" x="675" y="-42.9" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">pondera</text>
+</g>
+<!-- h_pih -->
+<g id="node21" class="node">
+<title>h_pih</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="581.4" cy="-79.2" rx="28.08" ry="18"></ellipse>
+<text text-anchor="middle" x="581.4" y="-75.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">pondih</text>
+</g>
+<!-- h_mie -->
+<g id="node22" class="node">
+<title>h_mie</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" stroke-dasharray="5,2" cx="574.2" cy="-270" rx="57.98" ry="18"></ellipse>
+<text text-anchor="middle" x="574.2" y="-266.1" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">cant. miembros</text>
+</g>
+<!-- h_ipc -->
+<g id="node23" class="node">
+<title>h_ipc</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" stroke-dasharray="5,2" cx="833.4" cy="-349.2" rx="66.23" ry="18"></ellipse>
+<text text-anchor="middle" x="833.4" y="-345.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">ingreso per cápita</text>
+</g>
+<!-- p_comp -->
+<g id="node24" class="node">
+<title>p_comp</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="271.8" cy="-277.2" rx="49.73" ry="18"></ellipse>
+<polyline fill="none" stroke="#1c1a3a" stroke-dasharray="5,2" points="235.8,-268.2 308.8,-268.2 "></polyline>
+<text text-anchor="start" x="236.52" y="-272.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">componente</text>
+</g>
+<!-- p_par -->
+<g id="node25" class="node">
+<title>p_par</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="127.8" cy="-277.2" rx="43.22" ry="18"></ellipse>
+<text text-anchor="middle" x="127.8" y="-273.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">parentesco</text>
+</g>
+<!-- p_sexo -->
+<g id="node26" class="node">
+<title>p_sexo</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="55.8" cy="-219.6" rx="27" ry="18"></ellipse>
+<text text-anchor="middle" x="55.8" y="-215.7" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">sexo</text>
+</g>
+<!-- p_edad -->
+<g id="node27" class="node">
+<title>p_edad</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="55.8" cy="-154.8" rx="27" ry="18"></ellipse>
+<text text-anchor="middle" x="55.8" y="-150.9" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">edad</text>
+</g>
+<!-- p_niv -->
+<g id="node28" class="node">
+<title>p_niv</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="84.6" cy="-97.2" rx="56.06" ry="18"></ellipse>
+<text text-anchor="middle" x="84.6" y="-93.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">nivel educativo</text>
+</g>
+<!-- p_est -->
+<g id="node29" class="node">
+<title>p_est</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="149.4" cy="-43.2" rx="81.03" ry="18"></ellipse>
+<text text-anchor="middle" x="149.4" y="-39.3" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">condición de actividad</text>
+</g>
+<!-- p_p21 -->
+<g id="node30" class="node">
+<title>p_p21</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="387" cy="-86.4" rx="82.11" ry="18"></ellipse>
+<text text-anchor="middle" x="387" y="-82.5" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">ingreso ocup. principal</text>
+</g>
+<!-- p_p47 -->
+<g id="node31" class="node">
+<title>p_p47</title>
+<ellipse fill="#ffffff" stroke="#1c1a3a" stroke-width="1.2" cx="300.6" cy="-18" rx="81.39" ry="18"></ellipse>
+<text text-anchor="middle" x="300.6" y="-14.1" font-family="Helvetica,sans-Serif" font-size="13.00" fill="#1c1a3a">ingreso total individual</text>
+</g>
+</g>
+</svg>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-der-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figura&nbsp;2.1: Diagrama entidad-relación de la EPH.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Cómo leerlo:</p>
+<ul>
+<li>Rectángulo doble y rombo doble: entidad débil y su relación de identificación. La doble línea dice que no puede existir un hogar sin vivienda, ni una persona sin hogar.</li>
+<li><code>1</code> y <code>N</code> sobre cada línea: la cardinalidad de cada entidad en la relación.</li>
+<li>Elipse punteada: atributo derivado.</li>
+</ul>
+</section>
+<section id="validar-con-expertos-del-dominio" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="validar-con-expertos-del-dominio"><span class="header-section-number">2.5</span> Validar con expertos del dominio</h2>
+<p>El último paso es validar el modelo con quien conoce el dominio. Acá ese papel lo cumple el diseño de registro de INDEC, el documento que describe cada variable de las bases: confirma que <code>CODUSU</code> identifica viviendas, que <code>NRO_HOGAR</code> numera hogares dentro de la vivienda y que <code>COMPONENTE</code> numera personas dentro del hogar.</p>
+<p>La otra validación es volver a las preguntas del capítulo 1. Todas se pueden responder recorriendo este diagrama: la población por región va de personas a regiones pasando por hogares, viviendas y aglomerados; las tres generaciones salen del parentesco de las personas de cada hogar; el ingreso per cápita es un atributo derivado de los hogares.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./01-dataset.html" class="pagination-link" aria-label="El dataset y las preguntas">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">El dataset y las preguntas</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./03-logico.html" class="pagination-link" aria-label="Modelo lógico">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>Modelado y Gestión de Datos · UNTREF · 2026</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Datos: Encuesta Permanente de Hogares, INDEC</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

@@ -1,0 +1,500 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "De la EPH a PostgreSQL",
+    "section": "",
+    "text": "Presentación\nEste cuaderno recorre, con un mismo conjunto de datos, el camino completo que vemos en las primeras unidades del curso: partir de un problema real, diseñar la base de datos, crearla en PostgreSQL, cargarla y consultarla.\nLos datos son los de la Encuesta Permanente de Hogares (EPH) de INDEC, del primer trimestre de 2018 al primer trimestre de 2026: 33 trimestres, más de medio millón de hogares y más de un millón y medio de personas. Es un volumen suficiente para que la carga sea masiva de verdad y para que el diseño importe.",
+    "crumbs": [
+      "Presentación"
+    ]
+  },
+  {
+    "objectID": "index.html#cómo-está-organizado",
+    "href": "index.html#cómo-está-organizado",
+    "title": "De la EPH a PostgreSQL",
+    "section": "Cómo está organizado",
+    "text": "Cómo está organizado\n\n\n\n\n\n\n\n\nCapítulo\nQué hacemos\nUnidad\n\n\n\n\n1. El dataset y las preguntas\nConocemos la EPH y fijamos qué tiene que responder la base\nU1\n\n\n2. Modelo conceptual\nDiagrama entidad-relación (DER)\nU2\n\n\n3. Modelo lógico\nDel DER a las tablas: heurística de derivación y formas normales\nU2\n\n\n4. Modelo físico\nTipos de datos, restricciones y DDL\nU3\n\n\n5. Carga masiva\nDescarga, \\copy, staging y transformación\nU3\n\n\n6. Consultas\nJOIN, agregaciones, CTE, vistas y vistas materializadas\nU3\n\n\n\nEl texto alterna explicación y código. Cada bloque SQL se ejecutó de verdad contra una base PostgreSQL al generar el sitio, y debajo aparece el resultado tal como lo devolvió el motor. El apéndice B cuenta cómo se hizo.",
+    "crumbs": [
+      "Presentación"
+    ]
+  },
+  {
+    "objectID": "index.html#qué-necesitás",
+    "href": "index.html#qué-necesitás",
+    "title": "De la EPH a PostgreSQL",
+    "section": "Qué necesitás",
+    "text": "Qué necesitás\n\nPostgreSQL y pgAdmin instalados, siguiendo la guía de instalación del curso.\nLos dos archivos de datos, que se bajan listos del Drive del curso (capítulo 5). R solo hace falta si querés armarlos vos desde las bases de INDEC (apéndice A).\n\nSi preferís armar la base de una vez, sin ir bloque por bloque, los scripts SQL están al final del capítulo 5.\n\n\n\n\n\n\nNotaSobre los datos\n\n\n\nLos microdatos de la EPH son públicos y los publica INDEC en su sitio de bases de datos. Acá usamos una selección de variables pensada para el curso. Para cualquier análisis estadístico serio, la referencia es siempre la documentación metodológica de INDEC.",
+    "crumbs": [
+      "Presentación"
+    ]
+  },
+  {
+    "objectID": "01-dataset.html",
+    "href": "01-dataset.html",
+    "title": "1  El dataset y las preguntas",
+    "section": "",
+    "text": "1.1 La Encuesta Permanente de Hogares\nToda base de datos empieza antes del primer CREATE TABLE: empieza por entender el dominio y por saber qué preguntas va a tener que responder. En la unidad 1 lo vimos como las primeras etapas del ciclo de vida del dato. En este capítulo las aplicamos a la EPH.\nLa EPH es la encuesta con la que INDEC mide, entre otras cosas, el empleo, la desocupación, los ingresos y la pobreza en los principales centros urbanos del país. Se releva en forma continua en 31 aglomerados urbanos y publica resultados por trimestre.\nTres rasgos del relevamiento van a pesar en el diseño:\nAsí llega un archivo de INDEC, recortado a sus primeras columnas:\nEs texto separado por punto y coma, una fila por hogar (o por persona, en la otra base). CODUSU identifica la vivienda, y junto con el año, el trimestre y NRO_HOGAR identifica al hogar.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>El dataset y las preguntas</span>"
+    ]
+  },
+  {
+    "objectID": "01-dataset.html#la-encuesta-permanente-de-hogares",
+    "href": "01-dataset.html#la-encuesta-permanente-de-hogares",
+    "title": "1  El dataset y las preguntas",
+    "section": "",
+    "text": "Se visitan viviendas. En cada vivienda puede vivir más de un hogar, y cada hogar tiene una o más personas.\nHay dos bases por trimestre. Una de hogares (usu_hogar) y otra de personas (usu_individual). En el primer trimestre de 2026 la de hogares trae 98 columnas y la de personas, 234.\nLa muestra rota. Una vivienda se encuesta dos trimestres seguidos, sale dos y vuelve otros dos. Por eso la misma vivienda aparece hasta cuatro veces en distintos trimestres.\n\n\n\"CODUSU\";\"ANO4\";\"TRIMESTRE\";\"NRO_HOGAR\";\"REALIZADA\";\"REGION\";\"MAS_500\";\"AGLOMERADO\";\"PONDERA\";...\n\"TQRMNOSPQHLLKRCDEGGFB00895161\";2026;1;1;1;42;\"S\";10;430;...\n\"TQSMNOPPVHJNKPCDEGGFB00876132\";2026;1;1;1;42;\"S\";10;450;...",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>El dataset y las preguntas</span>"
+    ]
+  },
+  {
+    "objectID": "01-dataset.html#los-dos-archivos",
+    "href": "01-dataset.html#los-dos-archivos",
+    "title": "1  El dataset y las preguntas",
+    "section": "1.2 Los dos archivos",
+    "text": "1.2 Los dos archivos\nNo necesitamos las 332 columnas para aprender a modelar. Nos quedamos con una selección que alcanza para responder preguntas interesantes, en dos archivos que siguen a las dos bases de INDEC: hogares.csv y personas.csv. Se bajan listos de la carpeta datos del Drive del curso; el apéndice A cuenta cómo se armaron. Las columnas conservan el nombre de INDEC, en minúsculas.\nEn cada tabla, la última columna dice a qué describe cada dato. Es la pregunta clave para el diseño.\n\nhogares.csv\nUna fila por hogar y por trimestre: 551.081 filas y 12 columnas.\n\n\n\n\n\n\n\n\nColumna\nQué es\nDescribe a\n\n\n\n\ncodusu\nCódigo de la vivienda\nidentificación\n\n\nano4, trimestre\nPeríodo del relevamiento\nidentificación\n\n\nnro_hogar\nNúmero de hogar dentro de la vivienda\nidentificación\n\n\nregion, aglomerado\nUbicación geográfica\nla vivienda\n\n\npondera\nPonderador (factor de expansión)\nel hogar\n\n\nii7\nRégimen de tenencia de la vivienda\nel hogar\n\n\nix_tot\nCantidad de miembros\nel hogar\n\n\nitf, ipcf\nIngreso total familiar e ingreso per cápita familiar\nel hogar\n\n\npondih\nPonderador de los ingresos\nel hogar\n\n\n\n\n\npersonas.csv\nUna fila por persona: 1.634.288 filas y 17 columnas.\n\n\n\n\n\n\n\n\nColumna\nQué es\nDescribe a\n\n\n\n\ncodusu, ano4, trimestre, nro_hogar\nHogar al que pertenece la persona\nidentificación\n\n\ncomponente\nNúmero de orden de la persona en el hogar\nidentificación\n\n\nregion, aglomerado\nUbicación geográfica\nla vivienda\n\n\npondera\nPonderador\nel hogar\n\n\nch03, ch04, ch06\nParentesco con el jefe/a, sexo y edad\nla persona\n\n\nnivel_ed, estado\nNivel educativo y condición de actividad\nla persona\n\n\np21, p47t\nIngreso de la ocupación principal e ingreso total individual\nla persona\n\n\nitf, ipcf\nIngresos del hogar\nel hogar\n\n\n\n\n\nLo que se repite\nEn personas.csv hay cinco columnas que no describen a la persona: region, aglomerado, pondera, itf e ipcf. Así se ven las filas de un hogar de cuatro generaciones del primer trimestre de 2026. Las seis tienen el mismo codusu, año, trimestre y número de hogar, y las columnas resaltadas repiten el mismo valor en cada integrante:\n\n\n\ncomponente\nregion\naglomerado\npondera\nch03\nch04\nch06\nitf\nipcf\n\n\n\n\n1\n1\n33\n2958\n1\n2\n51\n852000\n142000\n\n\n2\n1\n33\n2958\n2\n1\n56\n852000\n142000\n\n\n3\n1\n33\n2958\n6\n1\n77\n852000\n142000\n\n\n4\n1\n33\n2958\n3\n2\n34\n852000\n142000\n\n\n5\n1\n33\n2958\n3\n1\n22\n852000\n142000\n\n\n6\n1\n33\n2958\n5\n2\n7\n852000\n142000\n\n\n\nY en hogares.csv el mismo hogar vuelve a traer esos cinco valores:\n\n\n\nnro_hogar\nregion\naglomerado\npondera\nii7\nix_tot\nitf\nipcf\npondih\n\n\n\n\n1\n1\n33\n2958\n4\n6\n852000\n142000\n10992\n\n\n\nTres formas de redundancia, entonces:\n\nDatos del hogar en cada persona. pondera, itf e ipcf se repiten en cada integrante y, además, en hogares.csv.\nDatos de la vivienda en cada hogar y en cada persona. region y aglomerado dependen solo de la vivienda, pero aparecen en cada hogar, en cada persona y en cada trimestre en que se la visita.\nDatos que se pueden calcular. ix_tot es la cantidad de personas del hogar, que se puede contar, e ipcf es itf dividido por esa cantidad (852.000 / 6 = 142.000).\n\nLos cuatro primeros campos de personas.csv también se repiten, pero son otra cosa: identifican al hogar y son el vínculo entre los dos archivos. Lo que sobra son los datos que describen a otra entidad. Guardar un dato muchas veces ocupa lugar y, peor, permite que las copias se contradigan. En el capítulo 3 lo resolvemos con normalización, y en el 5 comprobamos que en estos archivos ya pasó.\n\n\n\n\n\n\nTipUna fila no es una persona del país\n\n\n\nLa EPH es una muestra. Cada hogar encuestado representa a muchos hogares, y esa cantidad es su pondera. Contar filas dice cuántos casos tiene la muestra; para estimar cuántas personas o cuántos hogares hay, se suma el ponderador. Lo vamos a hacer en todas las consultas del capítulo 6.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>El dataset y las preguntas</span>"
+    ]
+  },
+  {
+    "objectID": "01-dataset.html#las-preguntas",
+    "href": "01-dataset.html#las-preguntas",
+    "title": "1  El dataset y las preguntas",
+    "section": "1.3 Las preguntas",
+    "text": "1.3 Las preguntas\nDiseñamos la base para que pueda responder, como mínimo, estas preguntas. Funcionan como requerimientos: si el modelo no las puede contestar, el modelo está mal.\n\n¿Cuántas personas representa la encuesta en cada región y en cada trimestre?\n¿Cómo se distribuye el nivel educativo de la población adulta según el sexo?\n¿Qué proporción de hogares alquila su vivienda en cada región, y cómo cambió desde 2018?\n¿En qué aglomerados son más frecuentes los hogares donde conviven tres generaciones?\n¿Cómo evolucionó el ingreso per cápita familiar, en pesos corrientes?\n\nLas cinco cruzan información de distintos niveles (región, aglomerado, vivienda, hogar y persona). Esa es la pista para el modelo conceptual.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>El dataset y las preguntas</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html",
+    "href": "02-conceptual.html",
+    "title": "2  Modelo conceptual",
+    "section": "",
+    "text": "2.1 Identificar entidades\nEl modelo conceptual describe qué hay en el dominio, sin pensar todavía en tablas ni en PostgreSQL. Usamos el diagrama entidad-relación (DER) con la simbología de la presentación C02-2 y seguimos sus pasos: identificar entidades, definir las relaciones, determinar su cardinalidad, incorporar los atributos principales, esquematizar el DER y validarlo con quien conoce el dominio.\nReleyendo el capítulo anterior aparecen cinco cosas sobre las que queremos guardar datos. Como en C02-2, las nombramos en plural:\nViviendas y hogares parecen lo mismo, pero no lo son: en la muestra hay viviendas donde se relevaron hasta siete hogares en un mismo trimestre, y la vivienda sigue siendo la misma cuando se la vuelve a visitar meses después.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html#identificar-entidades",
+    "href": "02-conceptual.html#identificar-entidades",
+    "title": "2  Modelo conceptual",
+    "section": "",
+    "text": "regiones y aglomerados: la geografía de la encuesta.\nviviendas: lo que se visita. Cada una está en un aglomerado y se encuesta en varios trimestres.\nhogares: quienes comparten la vivienda y los gastos de alimentación. Puede haber más de un hogar por vivienda.\npersonas: cada integrante de un hogar.\n\n\n\nEntidades débiles\nUn hogar no tiene un atributo clave propio: NRO_HOGAR vale 1 en casi todos los hogares de la muestra. Lo que lo identifica es la vivienda donde se relevó más el año, el trimestre y su número. Los hogares son una entidad débil y las viviendas, su entidad de identificación, igual que los dependientes y los empleados en el ejemplo de C02-2.\nCon las personas pasa lo mismo un nivel más abajo: COMPONENTE es el número de orden dentro del hogar, así que las personas son una entidad débil respecto de los hogares.\n\n\n\n\n\n\nNotaUna decisión de modelado\n\n\n\nTratamos cada trimestre como un relevamiento distinto: el hogar que se encuestó en el primer trimestre y el mismo hogar en el segundo son dos ocurrencias de hogares. Seguir a los hogares a lo largo del panel es posible, pero pide otro modelo y ninguna de nuestras preguntas lo necesita.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html#definir-las-relaciones-y-su-cardinalidad",
+    "href": "02-conceptual.html#definir-las-relaciones-y-su-cardinalidad",
+    "title": "2  Modelo conceptual",
+    "section": "2.2 Definir las relaciones y su cardinalidad",
+    "text": "2.2 Definir las relaciones y su cardinalidad\nLas relaciones se nombran con un verbo, como «solicitan» o «incluyen» en el ejemplo de la biblioteca. Las cuatro son 1:N:\n\n\n\n\n\n\n\n\nRelación\nEntre\nSe lee\n\n\n\n\nagrupan\nregiones (1) y aglomerados (N)\nUna región agrupa muchos aglomerados; cada aglomerado está en una sola región\n\n\ncontienen\naglomerados (1) y viviendas (N)\nUn aglomerado contiene muchas viviendas; cada vivienda está en un solo aglomerado\n\n\nalbergan\nviviendas (1) y hogares (N)\nEn una vivienda se relevan muchos hogares; cada hogar se releva en una vivienda\n\n\nintegran\npersonas (N) y hogares (1)\nUn hogar tiene una o más personas; cada persona integra un hogar",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html#incorporar-los-atributos",
+    "href": "02-conceptual.html#incorporar-los-atributos",
+    "title": "2  Modelo conceptual",
+    "section": "2.3 Incorporar los atributos",
+    "text": "2.3 Incorporar los atributos\nLos atributos clave van subrayados. En las entidades débiles, la parte de la clave que aporta la propia entidad (el discriminador) va subrayada con línea punteada, como en Elmasri y Navathe, la bibliografía de C02-2.\nHay dos atributos derivados, que se dibujan con borde punteado porque se pueden obtener de otros datos:\n\nla cantidad de miembros del hogar, que sale de contar sus personas;\nel ingreso per cápita familiar, que es el ingreso total familiar dividido por la cantidad de miembros.\n\nLas variables codificadas, como la tenencia de la vivienda o el nivel educativo, por ahora son simplemente atributos. Cómo implementarlas es una decisión del modelo lógico.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html#esquematizar-el-der",
+    "href": "02-conceptual.html#esquematizar-el-der",
+    "title": "2  Modelo conceptual",
+    "section": "2.4 Esquematizar el DER",
+    "text": "2.4 Esquematizar el DER\n\n\n\n\n\n\n\n\nder\n\n\n\nregiones--agrupan\n\n1\n\n\n\nregiones--r_id\n\n\n\n\nregiones--r_nom\n\n\n\n\naglomerados--contienen\n\n1\n\n\n\naglomerados--a_id\n\n\n\n\naglomerados--a_nom\n\n\n\n\nviviendas--albergan\n\n   1\n\n\n\nviviendas--v_cod\n\n\n\n\nhogares--integran\n\n1\n\n\n\nhogares--h_anio\n\n\n\n\nhogares--h_trim\n\n\n\n\nhogares--h_nro\n\n\n\n\nhogares--h_ten\n\n\n\n\nhogares--h_itf\n\n\n\n\nhogares--h_pon\n\n\n\n\nhogares--h_pih\n\n\n\n\nhogares--h_mie\n\n\n\n\nhogares--h_ipc\n\n\n\n\npersonas--p_comp\n\n\n\n\npersonas--p_par\n\n\n\n\npersonas--p_sexo\n\n\n\n\npersonas--p_edad\n\n\n\n\npersonas--p_niv\n\n\n\n\npersonas--p_est\n\n\n\n\npersonas--p_p21\n\n\n\n\npersonas--p_p47\n\n\n\n\nagrupan--aglomerados\n\nN\n\n\n\ncontienen--viviendas\n\nN\n\n\n\nalbergan--hogares\n\n\n\n   N\n\n\n\nintegran--personas\n\n\n\nN\n\n\n\nregiones\n\nregiones\n\n\n\naglomerados\n\naglomerados\n\n\n\nviviendas\n\nviviendas\n\n\n\nhogares\n\n\nhogares\n\n\n\npersonas\n\n\npersonas\n\n\n\nagrupan\n\nagrupan\n\n\n\ncontienen\n\ncontienen\n\n\n\nalbergan\n\n\nalbergan\n\n\n\nintegran\n\n\nintegran\n\n\n\nr_id\n\nid\n\n\n\nr_nom\n\nnombre\n\n\n\na_id\n\nid\n\n\n\na_nom\n\nnombre\n\n\n\nv_cod\n\ncodusu\n\n\n\nh_anio\n\n\naño\n\n\n\nh_trim\n\n\ntrimestre\n\n\n\nh_nro\n\n\nnro. hogar\n\n\n\nh_ten\n\ntenencia\n\n\n\nh_itf\n\ningreso total familiar\n\n\n\nh_pon\n\npondera\n\n\n\nh_pih\n\npondih\n\n\n\nh_mie\n\ncant. miembros\n\n\n\nh_ipc\n\ningreso per cápita\n\n\n\np_comp\n\n\ncomponente\n\n\n\np_par\n\nparentesco\n\n\n\np_sexo\n\nsexo\n\n\n\np_edad\n\nedad\n\n\n\np_niv\n\nnivel educativo\n\n\n\np_est\n\ncondición de actividad\n\n\n\np_p21\n\ningreso ocup. principal\n\n\n\np_p47\n\ningreso total individual\n\n\n\n\n\n\nFigura 2.1: Diagrama entidad-relación de la EPH.\n\n\n\n\n\nCómo leerlo:\n\nRectángulo doble y rombo doble: entidad débil y su relación de identificación. La doble línea dice que no puede existir un hogar sin vivienda, ni una persona sin hogar.\n1 y N sobre cada línea: la cardinalidad de cada entidad en la relación.\nElipse punteada: atributo derivado.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "02-conceptual.html#validar-con-expertos-del-dominio",
+    "href": "02-conceptual.html#validar-con-expertos-del-dominio",
+    "title": "2  Modelo conceptual",
+    "section": "2.5 Validar con expertos del dominio",
+    "text": "2.5 Validar con expertos del dominio\nEl último paso es validar el modelo con quien conoce el dominio. Acá ese papel lo cumple el diseño de registro de INDEC, el documento que describe cada variable de las bases: confirma que CODUSU identifica viviendas, que NRO_HOGAR numera hogares dentro de la vivienda y que COMPONENTE numera personas dentro del hogar.\nLa otra validación es volver a las preguntas del capítulo 1. Todas se pueden responder recorriendo este diagrama: la población por región va de personas a regiones pasando por hogares, viviendas y aglomerados; las tres generaciones salen del parentesco de las personas de cada hogar; el ingreso per cápita es un atributo derivado de los hogares.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Modelo conceptual</span>"
+    ]
+  },
+  {
+    "objectID": "03-logico.html",
+    "href": "03-logico.html",
+    "title": "3  Modelo lógico",
+    "section": "",
+    "text": "3.1 Heurística de derivación\nEn el diseño lógico el DER se transforma en un conjunto de tablas normalizadas, como vimos en la presentación C02-3. Llegamos a esas tablas por dos caminos que se controlan entre sí: la heurística de derivación aplicada al DER y las formas normales de Codd aplicadas a los archivos tal como los publica INDEC.\nTransformación de entidades en tablas. Cada entidad del DER es una tabla y sus atributos son columnas. Seguimos la nomenclatura de C02-3: tablas en plural y en minúsculas, sin tildes y con guion bajo (regiones, aglomerados, viviendas, hogares, personas).\nIncorporación de claves primarias. La clave primaria sale del identificador de cada entidad. En regiones y aglomerados es el código de INDEC, que llamamos id; en viviendas es codusu.\nTratamiento de relaciones 1:N. La clave primaria de la tabla del lado 1 pasa como clave foránea a la tabla del lado N. Los aglomerados guardan id_region (FK) y las viviendas, id_aglomerado (FK): el nombre es id_ más la entidad en singular, como id_cliente (FK) en el ejemplo de clientes y pedidos.\nEntidades débiles. C02-3 no las trata aparte, pero la idea es la misma: la clave primaria de la entidad de identificación pasa como clave foránea y, además, forma parte de la clave primaria, junto con el discriminador. La clave de hogares es codusu (FK) más anio, trimestre y nro_hogar; la de personas, la clave completa del hogar (FK) más componente.\nAtributos derivados. No se guardan: se calculan cuando se necesitan. En el capítulo 6 lo hacemos con una vista.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Modelo lógico</span>"
+    ]
+  },
+  {
+    "objectID": "03-logico.html#formas-normales-de-codd",
+    "href": "03-logico.html#formas-normales-de-codd",
+    "title": "3  Modelo lógico",
+    "section": "3.2 Formas normales de Codd",
+    "text": "3.2 Formas normales de Codd\nSupongamos que en vez de diseñar importamos personas.csv tal cual, como una sola tabla. En el capítulo 1 vimos que repite datos del hogar y de la vivienda; ahora le ponemos nombre a ese problema. Su clave primaria es (codusu, ano4, trimestre, nro_hogar, componente).\nPara normalizar necesitamos las dependencias funcionales. X → Y se lee «X determina Y»: si dos filas coinciden en X, coinciden en Y. Del dominio y del diseño de registro salen estas:\n\n\n\n\n\n\n\nDependencia\nPor qué\n\n\n\n\ncodusu → aglomerado\nUna vivienda no cambia de lugar\n\n\naglomerado → region\nCada aglomerado está en una región\n\n\ncodusu, ano4, trimestre, nro_hogar → pondera, itf, ipcf\nSon datos del hogar, iguales para todos sus integrantes\n\n\nclave completa → ch03, ch04, ch06, nivel_ed, estado, p21, p47t\nSon datos de cada persona\n\n\n\n\nPrimera forma normal\nUna tabla está en 1FN si todos sus atributos contienen valores atómicos, y se parte de que tiene una clave primaria. Los archivos de INDEC ya cumplen la 1FN: cada celda tiene un único valor y no hay grupos de columnas repetidos.\n\n\nSegunda forma normal\nLa 2FN pide que todo atributo no clave dependa de la clave primaria completa (dependencia funcional total), no de una parte. El archivo de personas no la cumple. Aplicamos el método de C02-3:\n\nDeterminar las dependencias que no cumplen con la 2FN. codusu, ano4, trimestre, nro_hogar → pondera, itf, ipcf, porque son datos del hogar y se repiten en cada integrante, y codusu → region, aglomerado, porque son datos de la vivienda.\nConstruir otra entidad cuya clave primaria sea esa parte de la clave. Una tabla de hogares, con clave (codusu, ano4, trimestre, nro_hogar), y una de viviendas, con clave codusu.\nTrasladar los atributos que dependen de esa parte y suprimirlos de la tabla original. pondera, itf e ipcf pasan a hogares; region y aglomerado, a viviendas.\n\nEl archivo de hogares tiene el mismo problema con region y aglomerado, y se resuelve igual.\n\n\nTercera forma normal\nLa 3FN pide que ningún atributo no clave dependa de otro atributo no clave (dependencia transitiva). Quedan dos casos.\nEn viviendas, codusu → aglomerado y aglomerado → region: la región depende de la vivienda a través del aglomerado. Con el método de C02-3:\n\nDeterminar la dependencia transitiva. aglomerado → region.\nConstruir otra entidad cuya clave primaria sea el atributo que determina a los demás. Una tabla de aglomerados, con clave aglomerado.\nTrasladar los atributos y suprimirlos de la tabla original, dejando el atributo que pasó a ser clave de la nueva tabla. region pasa a aglomerados y en viviendas queda aglomerado, ahora como clave foránea. Los nombres de las regiones, que vienen del diseño de registro, van a su propia tabla.\n\nEn hogares, ipcf se calcula con itf y la cantidad de miembros, dos atributos no clave. Es el atributo derivado del modelo conceptual: no se guarda. Lo mismo vale para IX_TOT, la cantidad de miembros, que se obtiene contando las personas del hogar.\nLos dos caminos llegan a las mismas tablas, y esa coincidencia es una buena señal de que el diseño está bien.\n\n\n\n\n\n\nTip¿Y si la redundancia no molesta?\n\n\n\nGuardar un dato dos veces abre la puerta a que las dos copias digan cosas distintas. No es un riesgo teórico: en el capítulo 5 comprobamos estas dependencias con SQL y encontramos dos hogares donde los archivos de INDEC ya se contradicen.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Modelo lógico</span>"
+    ]
+  },
+  {
+    "objectID": "03-logico.html#catálogos",
+    "href": "03-logico.html#catálogos",
+    "title": "3  Modelo lógico",
+    "section": "3.3 Catálogos",
+    "text": "3.3 Catálogos\nLas variables codificadas (tenencia, parentesco, nivel educativo, condición de actividad) guardan un número cuyo significado está en el diseño de registro. Las implementamos como tablas de catálogo, con el código como id y su descripcion, y una clave foránea desde la tabla que las usa: id_tenencia (FK), id_parentesco (FK), etc. Así la base solo acepta códigos válidos y la etiqueta está escrita en un único lugar.\nDos decisiones más:\n\nEl sexo no lleva catálogo. Tiene dos valores fijos; alcanza con una restricción CHECK en el modelo físico.\nLos niveles educativos llevan una columna orden. Los códigos no están ordenados: el 7 es «sin instrucción», el nivel más bajo. Para ordenar de menor a mayor en una consulta hace falta ese dato, y es un dato del catálogo.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Modelo lógico</span>"
+    ]
+  },
+  {
+    "objectID": "03-logico.html#el-esquema-lógico",
+    "href": "03-logico.html#el-esquema-lógico",
+    "title": "3  Modelo lógico",
+    "section": "3.4 El esquema lógico",
+    "text": "3.4 El esquema lógico\nComo en C02-3, cada tabla es una caja con la clave primaria subrayada y las claves foráneas marcadas con (FK):\n\n  regiones\n    idnombre\n  aglomerados\n    idnombre\n    id_region (FK)\n  viviendas\n    codusu\n    id_aglomerado (FK)\n  hogares\n    codusu (FK)\n    aniotrimestre\n    nro_hogar\n    id_tenencia (FK)\n    ingreso_total_familiarpondera\n    pondih\n  personas\n    codusu (FK)\n    anio (FK)\n    trimestre (FK)\n    nro_hogar (FK)\n    componente\n    id_parentesco (FK)\n    sexoedad\n    id_nivel_educativo (FK)\n    id_condicion_actividad (FK)\n    ingreso_ocupacion_principal\n    ingreso_total_individual\n\n\n  tenencias\n    iddescripcion\n  parentescos\n    iddescripcion\n  niveles_educativos\n    iddescripcion\n    orden\n  condiciones_actividad\n    iddescripcion\n\nEn la segunda fila están los catálogos. En personas, las cuatro primeras columnas son a la vez parte de la clave primaria y la clave foránea hacia hogares, igual que en la tabla libros_por_prestamo del ejemplo de la biblioteca.\nUsamos anio en lugar de año: la ñ en nombres de columnas funciona, pero trae problemas con algunas herramientas y teclados. Los tipos de datos todavía no aparecen: elegirlos es parte del modelo físico, que viene en el capítulo siguiente.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Modelo lógico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html",
+    "href": "04-fisico.html",
+    "title": "4  Modelo físico",
+    "section": "",
+    "text": "4.1 Crear la base\nEl modelo físico es el esquema lógico escrito para un motor concreto: tipos de datos de PostgreSQL, restricciones y sentencias CREATE TABLE. Es lo que vimos en la presentación C03.\nPrimero, una base vacía. En pgAdmin: clic derecho sobre Databases, Create, Database…, y nombre eph. O en SQL:\nCREATE DATABASE eph;\nTodo lo que sigue se ejecuta conectado a eph. En pgAdmin, abrí el Query Tool sobre esa base; en psql, \\c eph.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html#tipos-de-datos",
+    "href": "04-fisico.html#tipos-de-datos",
+    "title": "4  Modelo físico",
+    "section": "4.2 Tipos de datos",
+    "text": "4.2 Tipos de datos\n\n\n\n\n\n\n\n\nColumnas\nTipo\nPor qué\n\n\n\n\nCódigos, anio, trimestre, nro_hogar, componente, sexo, edad\nsmallint\nEnteros chicos: ocupan 2 bytes\n\n\npondera, pondih\ninteger\nUn ponderador llega a 38.200 y smallint admite hasta 32.767\n\n\ncodusu\nchar(29)\nSiempre tiene 29 caracteres\n\n\nNombres y descripciones\nvarchar(n)\nTexto de largo variable\n\n\nIngresos\nnumeric(14,2)\nMontos exactos, sin los redondeos de los tipos de punto flotante\n\n\n\nNo usamos serial: ese tipo genera identificadores subrogados, y acá los identificadores ya vienen dados por INDEC.\nElegir el tipo es elegir qué datos acepta la columna. Si pondera fuera smallint, la carga fallaría en el primer hogar con un ponderador grande, y está bien que falle: mejor un error que un dato truncado.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html#restricciones",
+    "href": "04-fisico.html#restricciones",
+    "title": "4  Modelo físico",
+    "section": "4.3 Restricciones",
+    "text": "4.3 Restricciones\nAdemás de las claves primarias y foráneas, cada tabla declara las reglas que conocemos del dominio:\n\nNOT NULL donde el dato no puede faltar.\nCHECK para los rangos: el trimestre va de 1 a 4, el sexo es 1 o 2, la edad y los ingresos no son negativos, el ponderador es positivo.\nUNIQUE para lo que no se puede repetir aunque no sea clave, como el nombre de un aglomerado.\n\nCon estas reglas la base rechaza datos imposibles en el momento de cargarlos, no meses después en un análisis.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html#las-tablas",
+    "href": "04-fisico.html#las-tablas",
+    "title": "4  Modelo físico",
+    "section": "4.4 Las tablas",
+    "text": "4.4 Las tablas\nSe crean en orden: una tabla con clave foránea necesita que exista antes la tabla a la que apunta. Como en C03, las restricciones de una sola columna van junto a la columna y las de varias columnas, como restricciones de tabla.\nLa geografía:\n\nCREATE TABLE regiones (\n    id      smallint     PRIMARY KEY,\n    nombre  varchar(40)  NOT NULL UNIQUE\n);\n\nCREATE TABLE aglomerados (\n    id         smallint     PRIMARY KEY,\n    nombre     varchar(60)  NOT NULL UNIQUE,\n    id_region  smallint     NOT NULL REFERENCES regiones (id)\n);\n\nCREATE TABLE viviendas (\n    codusu         char(29)  PRIMARY KEY,\n    id_aglomerado  smallint  NOT NULL REFERENCES aglomerados (id)\n);\n\nLos catálogos:\n\nCREATE TABLE tenencias (\n    id           smallint     PRIMARY KEY,\n    descripcion  varchar(60)  NOT NULL\n);\n\nCREATE TABLE parentescos (\n    id           smallint     PRIMARY KEY,\n    descripcion  varchar(40)  NOT NULL\n);\n\nCREATE TABLE niveles_educativos (\n    id           smallint     PRIMARY KEY,\n    descripcion  varchar(60)  NOT NULL,\n    orden        smallint     NOT NULL UNIQUE\n);\n\nCREATE TABLE condiciones_actividad (\n    id           smallint     PRIMARY KEY,\n    descripcion  varchar(60)  NOT NULL\n);\n\nLos hogares, entidad débil: la clave primaria tiene cuatro columnas y se declara como restricción de tabla. La primera columna es, además, clave foránea hacia viviendas. La restricción del trimestre lleva nombre, para que el mensaje de error sea claro si alguna vez se viola.\n\nCREATE TABLE hogares (\n    codusu                  char(29)       NOT NULL REFERENCES viviendas (codusu),\n    anio                    smallint       NOT NULL CHECK (anio &gt;= 2003),\n    trimestre               smallint       NOT NULL,\n    nro_hogar               smallint       NOT NULL,\n    id_tenencia             smallint       REFERENCES tenencias (id),\n    ingreso_total_familiar  numeric(14,2)  CHECK (ingreso_total_familiar &gt;= 0),\n    pondera                 integer        NOT NULL CHECK (pondera &gt; 0),\n    pondih                  integer        NOT NULL CHECK (pondih &gt;= 0),\n    CONSTRAINT trimestre_valido CHECK (trimestre BETWEEN 1 AND 4),\n    PRIMARY KEY (codusu, anio, trimestre, nro_hogar)\n);\n\nid_tenencia e ingreso_total_familiar aceptan NULL: hay hogares sin dato de tenencia y hogares que no respondieron sus ingresos. En el capítulo 5 vemos de dónde salen esos NULL.\nLas personas heredan la clave completa del hogar. Como esa clave tiene cuatro columnas, la clave foránea también, y se escribe como restricción de tabla con FOREIGN KEY:\n\nCREATE TABLE personas (\n    codusu                       char(29)       NOT NULL,\n    anio                         smallint       NOT NULL,\n    trimestre                    smallint       NOT NULL,\n    nro_hogar                    smallint       NOT NULL,\n    componente                   smallint       NOT NULL,\n    id_parentesco                smallint       NOT NULL REFERENCES parentescos (id),\n    sexo                         smallint       NOT NULL CHECK (sexo IN (1, 2)),\n    edad                         smallint       NOT NULL CHECK (edad &gt;= 0),\n    id_nivel_educativo           smallint       NOT NULL REFERENCES niveles_educativos (id),\n    id_condicion_actividad       smallint       NOT NULL REFERENCES condiciones_actividad (id),\n    ingreso_ocupacion_principal  numeric(14,2)  CHECK (ingreso_ocupacion_principal &gt;= 0),\n    ingreso_total_individual     numeric(14,2)  CHECK (ingreso_total_individual &gt;= 0),\n    PRIMARY KEY (codusu, anio, trimestre, nro_hogar, componente),\n    FOREIGN KEY (codusu, anio, trimestre, nro_hogar)\n        REFERENCES hogares (codusu, anio, trimestre, nro_hogar)\n);",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html#los-catálogos-se-cargan-a-mano",
+    "href": "04-fisico.html#los-catálogos-se-cargan-a-mano",
+    "title": "4  Modelo físico",
+    "section": "4.5 Los catálogos se cargan a mano",
+    "text": "4.5 Los catálogos se cargan a mano\nLos códigos y sus descripciones no vienen en los archivos de datos: están en el diseño de registro. Son pocos, así que los insertamos con INSERT ... VALUES, nombrando las columnas como recomienda C03-2.\n\nINSERT INTO regiones (id, nombre) VALUES\n    (1,  'Gran Buenos Aires'),\n    (40, 'Noroeste'),\n    (41, 'Noreste'),\n    (42, 'Cuyo'),\n    (43, 'Pampeana'),\n    (44, 'Patagonia');\n\n\nINSERT INTO aglomerados (id, nombre, id_region) VALUES\n    (2,  'Gran La Plata', 43),\n    (3,  'Bahía Blanca-Cerri', 43),\n    (4,  'Gran Rosario', 43),\n    (5,  'Gran Santa Fe', 43),\n    (6,  'Gran Paraná', 43),\n    (7,  'Posadas', 41),\n    (8,  'Gran Resistencia', 41),\n    (9,  'Comodoro Rivadavia-Rada Tilly', 44),\n    (10, 'Gran Mendoza', 42),\n    (12, 'Corrientes', 41),\n    (13, 'Gran Córdoba', 43),\n    (14, 'Concordia', 43),\n    (15, 'Formosa', 41),\n    (17, 'Neuquén-Plottier', 44),\n    (18, 'Santiago del Estero-La Banda', 40),\n    (19, 'Jujuy-Palpalá', 40),\n    (20, 'Río Gallegos', 44),\n    (22, 'Gran Catamarca', 40),\n    (23, 'Gran Salta', 40),\n    (25, 'La Rioja', 40),\n    (26, 'Gran San Luis', 42),\n    (27, 'Gran San Juan', 42),\n    (29, 'Gran Tucumán-Tafí Viejo', 40),\n    (30, 'Santa Rosa-Toay', 43),\n    (31, 'Ushuaia-Río Grande', 44),\n    (32, 'Ciudad Autónoma de Buenos Aires', 1),\n    (33, 'Partidos del Gran Buenos Aires', 1),\n    (34, 'Mar del Plata', 43),\n    (36, 'Río Cuarto', 43),\n    (38, 'San Nicolás-Villa Constitución', 43),\n    (91, 'Rawson-Trelew', 44),\n    (93, 'Viedma-Carmen de Patagones', 44);\n\nSon 32 códigos para 31 aglomerados: la Ciudad de Buenos Aires y los partidos del conurbano forman juntos el aglomerado Gran Buenos Aires, pero la base los distingue.\n\nINSERT INTO tenencias (id, descripcion) VALUES\n    (1, 'Propietario de la vivienda y el terreno'),\n    (2, 'Propietario de la vivienda solamente'),\n    (3, 'Inquilino/arrendatario'),\n    (4, 'Ocupante por pago de impuestos/expensas'),\n    (5, 'Ocupante en relación de dependencia'),\n    (6, 'Ocupante gratuito (con permiso)'),\n    (7, 'Ocupante de hecho (sin permiso)'),\n    (8, 'Está en sucesión'),\n    (9, 'Otra situación');\n\nINSERT INTO parentescos (id, descripcion) VALUES\n    (1,  'Jefe/a'),\n    (2,  'Cónyuge/Pareja'),\n    (3,  'Hijo/Hijastro/a'),\n    (4,  'Yerno/Nuera'),\n    (5,  'Nieto/a'),\n    (6,  'Madre/Padre'),\n    (7,  'Suegro/a'),\n    (8,  'Hermano/a'),\n    (9,  'Otros familiares'),\n    (10, 'No familiares');\n\nINSERT INTO niveles_educativos (id, descripcion, orden) VALUES\n    (7, 'Sin instrucción', 1),\n    (1, 'Primario incompleto (incluye educación especial)', 2),\n    (2, 'Primario completo', 3),\n    (3, 'Secundario incompleto', 4),\n    (4, 'Secundario completo', 5),\n    (5, 'Superior universitario incompleto', 6),\n    (6, 'Superior universitario completo', 7),\n    (9, 'Ns/Nr', 9);\n\nINSERT INTO condiciones_actividad (id, descripcion) VALUES\n    (0, 'Entrevista individual no realizada'),\n    (1, 'Ocupado'),\n    (2, 'Desocupado'),\n    (3, 'Inactivo'),\n    (4, 'Menor de 10 años');",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "04-fisico.html#el-diccionario-de-datos-dentro-de-la-base",
+    "href": "04-fisico.html#el-diccionario-de-datos-dentro-de-la-base",
+    "title": "4  Modelo físico",
+    "section": "4.6 El diccionario de datos, dentro de la base",
+    "text": "4.6 El diccionario de datos, dentro de la base\nCOMMENT guarda una descripción de cada tabla y columna en el catálogo de PostgreSQL. Anotamos el nombre original de cada variable en la EPH, así cualquiera puede volver a la documentación de INDEC.\n\nCOMMENT ON TABLE regiones    IS 'Regiones estadísticas de la EPH (variable REGION).';\nCOMMENT ON TABLE aglomerados IS 'Aglomerados urbanos relevados por la EPH (variable AGLOMERADO).';\nCOMMENT ON TABLE viviendas   IS 'Viviendas de la muestra. Una misma vivienda se visita en varios trimestres.';\nCOMMENT ON TABLE hogares     IS 'Hogares relevados en cada trimestre (base usu_hogar).';\nCOMMENT ON TABLE personas    IS 'Personas de cada hogar relevado (base usu_individual).';\nCOMMENT ON TABLE tenencias             IS 'Códigos de II7: régimen de tenencia de la vivienda.';\nCOMMENT ON TABLE parentescos           IS 'Códigos de CH03: relación de parentesco con el jefe/a del hogar.';\nCOMMENT ON TABLE niveles_educativos    IS 'Códigos de NIVEL_ED. La columna orden sirve para ordenar de menor a mayor nivel.';\nCOMMENT ON TABLE condiciones_actividad IS 'Códigos de ESTADO: condición de actividad.';\n\nCOMMENT ON COLUMN regiones.id                     IS 'REGION: código de la región.';\nCOMMENT ON COLUMN aglomerados.id                  IS 'AGLOMERADO: código del aglomerado.';\nCOMMENT ON COLUMN viviendas.codusu                IS 'CODUSU: código que identifica la vivienda y permite seguirla entre trimestres.';\nCOMMENT ON COLUMN viviendas.id_aglomerado         IS 'AGLOMERADO: aglomerado donde está la vivienda.';\nCOMMENT ON COLUMN hogares.anio                    IS 'ANO4: año del relevamiento.';\nCOMMENT ON COLUMN hogares.trimestre               IS 'TRIMESTRE: trimestre del relevamiento.';\nCOMMENT ON COLUMN hogares.nro_hogar               IS 'NRO_HOGAR: número de hogar dentro de la vivienda.';\nCOMMENT ON COLUMN hogares.id_tenencia             IS 'II7: régimen de tenencia. NULL si no hay dato.';\nCOMMENT ON COLUMN hogares.ingreso_total_familiar  IS 'ITF: ingreso total familiar, en pesos corrientes. NULL si el hogar no respondió ingresos.';\nCOMMENT ON COLUMN hogares.pondera                 IS 'PONDERA: ponderador del hogar (factor de expansión).';\nCOMMENT ON COLUMN hogares.pondih                  IS 'PONDIH: ponderador para los ingresos del hogar, corregido por no respuesta.';\nCOMMENT ON COLUMN personas.componente             IS 'COMPONENTE: número de orden de la persona dentro del hogar.';\nCOMMENT ON COLUMN personas.id_parentesco          IS 'CH03: parentesco con el jefe/a del hogar.';\nCOMMENT ON COLUMN personas.sexo                   IS 'CH04: sexo (1 = varón, 2 = mujer).';\nCOMMENT ON COLUMN personas.edad                   IS 'CH06: años cumplidos (0 = menos de un año).';\nCOMMENT ON COLUMN personas.id_nivel_educativo     IS 'NIVEL_ED: nivel educativo.';\nCOMMENT ON COLUMN personas.id_condicion_actividad IS 'ESTADO: condición de actividad.';\nCOMMENT ON COLUMN personas.ingreso_ocupacion_principal IS 'P21: ingreso de la ocupación principal, en pesos corrientes. NULL = no sabe o no responde.';\nCOMMENT ON COLUMN personas.ingreso_total_individual    IS 'P47T: ingreso total individual, en pesos corrientes. NULL = no sabe, no responde o sin dato.';\n\nEl diccionario se consulta con SQL, cruzando information_schema con la función col_description:\n\nSELECT c.table_name  AS tabla,\n       c.column_name AS columna,\n       c.data_type   AS tipo,\n       COL_DESCRIPTION(FORMAT('%I.%I', c.table_schema, c.table_name)::regclass,\n                       c.ordinal_position) AS descripcion\nFROM information_schema.columns c\nWHERE c.table_schema = 'public'\n  AND c.table_name = 'hogares'\nORDER BY c.ordinal_position;\n\n\n8 filas\n\n\n\n\ntabla\n\n\ncolumna\n\n\ntipo\n\n\ndescripcion\n\n\n\n\n\n\nhogares\n\n\ncodusu\n\n\ncharacter\n\n\nNA\n\n\n\n\nhogares\n\n\nanio\n\n\nsmallint\n\n\nANO4: año del relevamiento.\n\n\n\n\nhogares\n\n\ntrimestre\n\n\nsmallint\n\n\nTRIMESTRE: trimestre del relevamiento.\n\n\n\n\nhogares\n\n\nnro_hogar\n\n\nsmallint\n\n\nNRO_HOGAR: número de hogar dentro de la vivienda.\n\n\n\n\nhogares\n\n\nid_tenencia\n\n\nsmallint\n\n\nII7: régimen de tenencia. NULL si no hay dato.\n\n\n\n\nhogares\n\n\ningreso_total_familiar\n\n\nnumeric\n\n\nITF: ingreso total familiar, en pesos corrientes. NULL si el hogar no respondió ingresos.\n\n\n\n\nhogares\n\n\npondera\n\n\ninteger\n\n\nPONDERA: ponderador del hogar (factor de expansión).\n\n\n\n\nhogares\n\n\npondih\n\n\ninteger\n\n\nPONDIH: ponderador para los ingresos del hogar, corregido por no respuesta.\n\n\n\n\n\nEn pgAdmin los mismos comentarios aparecen en la pestaña Properties de cada tabla. En la unidad 5 volvemos sobre esta idea, la de los metadatos que viajan junto con los datos.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Modelo físico</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html",
+    "href": "05-carga.html",
+    "title": "5  Carga masiva",
+    "section": "",
+    "text": "5.1 Conseguir los datos\nLas tablas están creadas y vacías. En este capítulo cargamos los datos en bloque y los pasamos al modelo, todo con SQL. Es lo que vimos en la presentación C03-2 con COPY, ahora con un millón y medio de filas.\nLos dos archivos, hogares.csv y personas.csv, están listos en la carpeta datos del Drive del curso, comprimidos en hogares.zip y personas.zip. Bajalos y descomprimilos en una carpeta llamada eph. Desde acá todo es SQL.\nSi te interesa cómo se armaron esos archivos a partir de las bases que publica INDEC, está en el apéndice A.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#la-ruta-de-los-archivos",
+    "href": "05-carga.html#la-ruta-de-los-archivos",
+    "title": "5  Carga masiva",
+    "section": "5.2 La ruta de los archivos",
+    "text": "5.2 La ruta de los archivos\nPara cargar un archivo hay que decirle a PostgreSQL dónde está, con su ruta completa. Es el error más común de este capítulo, así que vale la pena detenerse.\nLa ruta completa empieza desde la raíz del disco:\n\n\n\nSistema\nEjemplo\n\n\n\n\nWindows\nC:/Users/ana/Downloads/eph/hogares.csv\n\n\nMac\n/Users/ana/Downloads/eph/hogares.csv\n\n\n\nDos formas de conseguirla sin tipearla:\n\nEn Windows, con Shift y clic derecho sobre el archivo, Copiar como ruta de acceso.\nEn Mac, con clic derecho sobre el archivo y la tecla Opción apretada: Copiar «hogares.csv» como nombre de ruta.\n\n\n\n\n\n\n\nTipComillas en Windows\n\n\n\nCopiar como ruta de acceso trae la ruta entre comillas dobles. En COPY y \\copy la ruta va entre comillas simples, así que hay que cambiarlas. Las barras invertidas, como en el ejemplo de C03-2 (C:\\sampledb\\persons.csv), funcionan igual que las comunes.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#copy-y-copy",
+    "href": "05-carga.html#copy-y-copy",
+    "title": "5  Carga masiva",
+    "section": "5.3 COPY y \\copy",
+    "text": "5.3 COPY y \\copy\nLas dos leen un archivo y lo cargan en una tabla, con la sintaxis de C03-2: DELIMITER ',' indica el separador y CSV HEADER, que el archivo es un CSV con los nombres de las columnas en la primera línea. La diferencia es quién lee el archivo:\n\nCOPY es una sentencia SQL y la ejecuta el servidor. El archivo tiene que estar en la máquina del servidor y el servidor necesita permiso para leerlo. En Windows, el servicio de PostgreSQL corre con un usuario del sistema que no puede entrar a tu carpeta de descargas, y COPY falla con Permission denied.\n\\copy es un comando de psql, el cliente. Lee el archivo con tus permisos y le manda los datos al servidor. Por eso casi siempre funciona.\n\n\\copy se escribe en psql (en Windows, SQL Shell (psql); en pgAdmin, Tools y luego PSQL Tool). No es SQL, así que no funciona en el Query Tool. Si preferís no salir de pgAdmin, el menú Import/Export Data… de cada tabla hace lo mismo con una ventana: formato csv y la opción Header activada.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#primero-a-una-tabla-de-staging",
+    "href": "05-carga.html#primero-a-una-tabla-de-staging",
+    "title": "5  Carga masiva",
+    "section": "5.4 Primero, a una tabla de staging",
+    "text": "5.4 Primero, a una tabla de staging\nLos archivos no se cargan directo en hogares y personas. Primero van a tablas de staging (de carga intermedia) con las mismas columnas que el CSV, todas de tipo texto. Hay buenas razones:\n\nLos archivos tienen sorpresas. Los montos mezclan coma y punto decimal, en algunos trimestres vienen en notación científica (9e+05) y la falta de respuesta se codifica con -9. Con columnas de texto la carga nunca falla por eso.\nLa limpieza queda escrita en SQL, a la vista, en vez de esconderse en un programa aparte.\nAntes de pasar los datos al modelo podemos verificarlos con consultas.\n\nLas nombramos con el prefijo stg_ para distinguirlas de las tablas del modelo:\n\nCREATE TABLE stg_hogares (\n    codusu text, ano4 text, trimestre text, nro_hogar text,\n    region text, aglomerado text, pondera text, ii7 text,\n    ix_tot text, itf text, ipcf text, pondih text\n);\n\nCREATE TABLE stg_personas (\n    codusu text, ano4 text, trimestre text, nro_hogar text, componente text,\n    region text, aglomerado text, pondera text,\n    ch03 text, ch04 text, ch06 text, nivel_ed text, estado text,\n    p21 text, p47t text, itf text, ipcf text\n);\n\nAhora sí, la carga. Elegí la pestaña de tu sistema y cambiá ana por tu usuario:\n\nWindowsMac\n\n\n\\copy stg_hogares  FROM 'C:/Users/ana/Downloads/eph/hogares.csv'  DELIMITER ',' CSV HEADER\n\\copy stg_personas FROM 'C:/Users/ana/Downloads/eph/personas.csv' DELIMITER ',' CSV HEADER\n\n\n\\copy stg_hogares  FROM '/Users/ana/Downloads/eph/hogares.csv'  DELIMITER ',' CSV HEADER\n\\copy stg_personas FROM '/Users/ana/Downloads/eph/personas.csv' DELIMITER ',' CSV HEADER\n\n\n\nCada \\copy responde con la cantidad de filas cargadas. Lo confirmamos:\n\nSELECT 'stg_hogares' AS tabla,\n       COUNT(*) AS filas\nFROM stg_hogares\nUNION ALL\nSELECT 'stg_personas',\n       COUNT(*)\nFROM stg_personas;\n\n\n2 filas\n\n\n\n\ntabla\n\n\nfilas\n\n\n\n\n\n\nstg_hogares\n\n\n551081\n\n\n\n\nstg_personas\n\n\n1634288",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#se-cumplen-las-dependencias",
+    "href": "05-carga.html#se-cumplen-las-dependencias",
+    "title": "5  Carga masiva",
+    "section": "5.5 ¿Se cumplen las dependencias?",
+    "text": "5.5 ¿Se cumplen las dependencias?\nEn el capítulo 3 normalizamos a partir de dependencias funcionales que dedujimos del dominio. Con los datos cargados las podemos comprobar. La idea es siempre la misma: agrupar por el lado izquierdo de la dependencia y buscar grupos con más de un valor del lado derecho. Si no aparece ninguno, la dependencia se cumple.\n¿Cada vivienda está en un solo aglomerado?\n\nSELECT codusu,\n       COUNT(DISTINCT aglomerado) AS aglomerados\nFROM stg_hogares\nGROUP BY codusu\nHAVING COUNT(DISTINCT aglomerado) &gt; 1;\n\n\n0 filas\n\n\n\n\ncodusu\n\n\naglomerados\n\n\n\n\n\n\n\n\n\n¿Cada aglomerado está en una sola región?\n\nSELECT aglomerado,\n       COUNT(DISTINCT region) AS regiones\nFROM stg_hogares\nGROUP BY aglomerado\nHAVING COUNT(DISTINCT region) &gt; 1;\n\n\n0 filas\n\n\n\n\naglomerado\n\n\nregiones\n\n\n\n\n\n\n\n\n\n¿El ponderador que se repite en cada persona es el de su hogar?\n\nSELECT COUNT(*) AS personas_con_otro_ponderador\nFROM stg_personas p\nINNER JOIN stg_hogares h ON h.codusu = p.codusu AND h.ano4 = p.ano4\n                        AND h.trimestre = p.trimestre AND h.nro_hogar = p.nro_hogar\nWHERE p.pondera &lt;&gt; h.pondera;\n\n\n1 fila\n\n\n\n\npersonas_con_otro_ponderador\n\n\n\n\n\n\n0\n\n\n\n\n\nLas tres dependencias se cumplen. Ahora, el costo de la redundancia. El ingreso total familiar está guardado dos veces, en el archivo de hogares y en cada persona del archivo de personas. ¿Dicen lo mismo? Lo comparamos como número, porque el mismo monto puede venir escrito 900000 en un archivo y 9e+05 en el otro:\n\nSELECT p.codusu,\n       p.ano4,\n       p.trimestre,\n       p.nro_hogar,\n       MIN(h.itf) AS itf_archivo_hogares,\n       MIN(p.itf) AS itf_archivo_personas\nFROM stg_personas p\nINNER JOIN stg_hogares h ON h.codusu = p.codusu AND h.ano4 = p.ano4\n                        AND h.trimestre = p.trimestre AND h.nro_hogar = p.nro_hogar\nWHERE REPLACE(p.itf, ',', '.')::numeric &lt;&gt; REPLACE(h.itf, ',', '.')::numeric\nGROUP BY p.codusu, p.ano4, p.trimestre, p.nro_hogar;\n\n\n1 fila\n\n\n\n\ncodusu\n\n\nano4\n\n\ntrimestre\n\n\nnro_hogar\n\n\nitf_archivo_hogares\n\n\nitf_archivo_personas\n\n\n\n\n\n\nTQRMNOQQWHJMKSCDEGJBF00793251\n\n\n2023\n\n\n4\n\n\n1\n\n\n1900000\n\n\n1500000\n\n\n\n\n\nUn hogar, en el cuarto trimestre de 2023, tiene dos ingresos distintos según el archivo que se mire. ¿Cuál es el verdadero? Con los datos guardados una sola vez, esa pregunta no podría aparecer.\nEl otro caso es un atributo derivado. IX_TOT dice cuántos miembros tiene el hogar, algo que también se puede contar:\n\nSELECT h.codusu,\n       h.ano4,\n       h.trimestre,\n       h.nro_hogar,\n       h.ix_tot,\n       COUNT(*) AS personas_en_la_base,\n       h.itf,\n       h.ipcf\nFROM stg_hogares h\nINNER JOIN stg_personas p ON p.codusu = h.codusu AND p.ano4 = h.ano4\n                         AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\nGROUP BY h.codusu, h.ano4, h.trimestre, h.nro_hogar, h.ix_tot, h.itf, h.ipcf\nHAVING h.ix_tot::integer &lt;&gt; COUNT(*);\n\n\n1 fila\n\n\n\n\ncodusu\n\n\nano4\n\n\ntrimestre\n\n\nnro_hogar\n\n\nix_tot\n\n\npersonas_en_la_base\n\n\nitf\n\n\nipcf\n\n\n\n\n\n\nTQRMNOPYUHKLLMCDEHIBB00654657\n\n\n2021\n\n\n1\n\n\n1\n\n\n4\n\n\n3\n\n\n90000\n\n\n30000\n\n\n\n\n\nEn un hogar de 2021, IX_TOT dice 4 pero hay 3 personas. El propio INDEC calculó el ingreso per cápita dividiendo por 3 (90.000 / 3 = 30.000), o sea, contando. Por eso en nuestra base la cantidad de miembros no se guarda: se cuenta.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#del-staging-al-modelo",
+    "href": "05-carga.html#del-staging-al-modelo",
+    "title": "5  Carga masiva",
+    "section": "5.6 Del staging al modelo",
+    "text": "5.6 Del staging al modelo\nCon INSERT ... SELECT las filas pasan de las tablas de staging a las definitivas, convertidas y limpias. El orden importa por las claves foráneas: primero viviendas, después hogares, al final personas.\nLas viviendas son los valores distintos de codusu, cada uno con su aglomerado:\n\nINSERT INTO viviendas (codusu, id_aglomerado)\nSELECT DISTINCT codusu,\n       aglomerado::smallint\nFROM stg_hogares;\n\nLos hogares necesitan tres arreglos además de convertir tipos:\n\nII7 vale 0 en algunos hogares, y 0 no es un código del diseño de registro: lo guardamos como NULL.\nAlgunos montos traen coma decimal; REPLACE la cambia por punto antes de convertir a numeric, que además entiende la notación científica.\nUn hogar que no respondió sus ingresos figura con ITF en 0 y PONDIH en 0. Ese cero no es un ingreso de cero pesos: es un dato que falta, y en SQL un dato que falta es NULL.\n\n\nINSERT INTO hogares (codusu, anio, trimestre, nro_hogar, id_tenencia,\n                     ingreso_total_familiar, pondera, pondih)\nSELECT codusu,\n       ano4::smallint,\n       trimestre::smallint,\n       nro_hogar::smallint,\n       NULLIF(ii7, '0')::smallint,\n       CASE WHEN REPLACE(itf, ',', '.')::numeric = 0 AND pondih = '0' THEN NULL\n            ELSE REPLACE(itf, ',', '.')::numeric\n       END,\n       pondera::integer,\n       pondih::integer\nFROM stg_hogares;\n\nEn las personas, la edad -1 significa «menos de un año» y pasa a 0, y el código -9 de los ingresos (no sabe o no responde) pasa a NULL:\n\nINSERT INTO personas (codusu, anio, trimestre, nro_hogar, componente,\n                      id_parentesco, sexo, edad, id_nivel_educativo,\n                      id_condicion_actividad, ingreso_ocupacion_principal,\n                      ingreso_total_individual)\nSELECT codusu,\n       ano4::smallint,\n       trimestre::smallint,\n       nro_hogar::smallint,\n       componente::smallint,\n       ch03::smallint,\n       ch04::smallint,\n       GREATEST(ch06::smallint, 0),\n       nivel_ed::smallint,\n       estado::smallint,\n       NULLIF(REPLACE(p21, ',', '.')::numeric, -9),\n       NULLIF(REPLACE(p47t, ',', '.')::numeric, -9)\nFROM stg_personas;\n\nMientras se insertan las filas, PostgreSQL controla cada restricción del capítulo 4: que el hogar exista para cada persona, que los códigos estén en sus catálogos, que el trimestre vaya de 1 a 4. Si un solo dato no cumple, el INSERT entero se cancela.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#control-final",
+    "href": "05-carga.html#control-final",
+    "title": "5  Carga masiva",
+    "section": "5.7 Control final",
+    "text": "5.7 Control final\n\nSELECT 'viviendas' AS tabla, COUNT(*) AS filas FROM viviendas\nUNION ALL\nSELECT 'hogares', COUNT(*) FROM hogares\nUNION ALL\nSELECT 'personas', COUNT(*) FROM personas;\n\n\n3 filas\n\n\n\n\ntabla\n\n\nfilas\n\n\n\n\n\n\nviviendas\n\n\n196057\n\n\n\n\nhogares\n\n\n551081\n\n\n\n\npersonas\n\n\n1634288\n\n\n\n\n\nLas filas coinciden con las de staging: 551.081 hogares y 1.634.288 personas, en 196.057 viviendas. El staging ya cumplió su función:\n\nDROP TABLE stg_hogares, stg_personas;\n\n\nANALYZE;\n\nANALYZE actualiza las estadísticas que usa PostgreSQL para decidir cómo ejecutar cada consulta. Conviene correrlo después de una carga grande.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "05-carga.html#sec-scripts",
+    "href": "05-carga.html#sec-scripts",
+    "title": "5  Carga masiva",
+    "section": "5.8 Los scripts",
+    "text": "5.8 Los scripts\nTodo lo que hicimos para armar la base está también en cuatro scripts, uno por grupo de tablas. Sirven para rehacerla sin ir bloque por bloque, entera o por partes:\n\n\n\nScript\nQué hace\nDónde se corre\n\n\n\n\n01_codigos.sql\nCrea regiones, aglomerados y catálogos, con sus datos\nQuery Tool o psql\n\n\n02_hogares.sql\nCarga hogares.csv y arma viviendas y hogares\npsql\n\n\n03_personas.sql\nCarga personas.csv y arma personas\npsql\n\n\n04_vistas.sql\nCrea las vistas del capítulo 6\nQuery Tool o psql\n\n\n\nLos que cargan archivos usan \\copy, así que van en psql. Guardá los scripts en la carpeta eph, junto a los CSV. En psql, \\c te conecta a la base, \\cd te lleva a la carpeta y \\i ejecuta cada script:\n\nWindowsMac\n\n\n\\c eph\n\\cd C:/Users/ana/Downloads/eph\n\\i 01_codigos.sql\n\\i 02_hogares.sql\n\\i 03_personas.sql\n\\i 04_vistas.sql\n\n\n\\c eph\n\\cd /Users/ana/Downloads/eph\n\\i 01_codigos.sql\n\\i 02_hogares.sql\n\\i 03_personas.sql\n\\i 04_vistas.sql\n\n\n\n\n\n\n\n\n\nTipBarras en \\cd\n\n\n\nEn \\cd, a diferencia de \\copy, las barras invertidas no funcionan: la ruta va con barras comunes, como en el ejemplo. Si tiene espacios, entre comillas simples.\n\n\nPara correr los cuatro de una vez está eph_completo.sql: después del \\cd, \\i eph_completo.sql. Tarda un par de minutos.\nCada script empieza borrando lo que va a crear, así que se puede volver a correr. Pero el DROP ... CASCADE del principio también se lleva las claves foráneas y las vistas que dependían de esas tablas. Por eso, si volvés a correr un script, corré también los que le siguen.",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Carga masiva</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html",
+    "href": "06-consultas.html",
+    "title": "6  Consultas",
+    "section": "",
+    "text": "6.1 Un hogar, con sus etiquetas\nLa base está cargada. Ahora respondemos las preguntas del capítulo 1 con lo que vimos en la presentación C04: INNER JOIN, agregaciones, HAVING, IN, vistas y vistas materializadas. Sumamos una herramienta nueva, las expresiones de tabla comunes (WITH), que ordenan las consultas largas. Escribimos las consultas como en C04: un atributo debajo del otro, con alias cortos para las tablas.\nEmpecemos por algo chico: el hogar de cuatro generaciones que vimos en el capítulo 1, ahora desde la base. Los códigos se traducen con un INNER JOIN a cada catálogo, y el sexo, que no tiene catálogo, con un CASE:\nSELECT p.componente,\n       pa.descripcion AS parentesco,\n       CASE p.sexo WHEN 1 THEN 'Varón' ELSE 'Mujer' END AS sexo,\n       p.edad,\n       ne.descripcion AS nivel_educativo,\n       ca.descripcion AS condicion_actividad\nFROM personas p\nINNER JOIN parentescos pa           ON p.id_parentesco = pa.id\nINNER JOIN niveles_educativos ne    ON p.id_nivel_educativo = ne.id\nINNER JOIN condiciones_actividad ca ON p.id_condicion_actividad = ca.id\nWHERE p.codusu = 'TQRMNOSUTHKOTNCDEIJAH00902653'\n  AND p.anio = 2026 AND p.trimestre = 1 AND p.nro_hogar = 1\nORDER BY p.componente;\n\n\n6 filas\n\n\n\n\ncomponente\n\n\nparentesco\n\n\nsexo\n\n\nedad\n\n\nnivel_educativo\n\n\ncondicion_actividad\n\n\n\n\n\n\n1\n\n\nJefe/a\n\n\nMujer\n\n\n51\n\n\nPrimario completo\n\n\nInactivo\n\n\n\n\n2\n\n\nCónyuge/Pareja\n\n\nVarón\n\n\n56\n\n\nPrimario completo\n\n\nOcupado\n\n\n\n\n3\n\n\nMadre/Padre\n\n\nVarón\n\n\n77\n\n\nPrimario completo\n\n\nInactivo\n\n\n\n\n4\n\n\nHijo/Hijastro/a\n\n\nMujer\n\n\n34\n\n\nSuperior universitario completo\n\n\nOcupado\n\n\n\n\n5\n\n\nHijo/Hijastro/a\n\n\nVarón\n\n\n22\n\n\nSecundario incompleto\n\n\nDesocupado\n\n\n\n\n6\n\n\nNieto/a\n\n\nMujer\n\n\n7\n\n\nPrimario incompleto (incluye educación especial)\n\n\nMenor de 10 años\nCon las etiquetas se lee lo que en el CSV eran códigos: el padre de la jefa, la jefa y su cónyuge, sus dos hijos y una nieta. Volvemos sobre este tipo de hogar más adelante.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#cuántas-personas-representa-la-encuesta",
+    "href": "06-consultas.html#cuántas-personas-representa-la-encuesta",
+    "title": "6  Consultas",
+    "section": "6.2 ¿Cuántas personas representa la encuesta?",
+    "text": "6.2 ¿Cuántas personas representa la encuesta?\nContar filas da el tamaño de la muestra; sumar el ponderador estima la población. El ponderador está en el hogar, así que hace falta unir cada persona con su hogar por la clave completa:\n\nSELECT h.anio,\n       h.trimestre,\n       COUNT(*) AS personas_encuestadas,\n       SUM(h.pondera) AS poblacion_estimada\nFROM personas p\nINNER JOIN hogares h ON p.codusu = h.codusu AND p.anio = h.anio\n                    AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\nWHERE h.anio &gt;= 2024\nGROUP BY h.anio, h.trimestre\nORDER BY h.anio, h.trimestre;\n\n\n9 filas\n\n\n\n\nanio\n\n\ntrimestre\n\n\npersonas_encuestadas\n\n\npoblacion_estimada\n\n\n\n\n\n\n2024\n\n\n1\n\n\n46050\n\n\n29593214\n\n\n\n\n2024\n\n\n2\n\n\n47151\n\n\n29656342\n\n\n\n\n2024\n\n\n3\n\n\n47564\n\n\n29720145\n\n\n\n\n2024\n\n\n4\n\n\n46860\n\n\n29783573\n\n\n\n\n2025\n\n\n1\n\n\n45425\n\n\n29847178\n\n\n\n\n2025\n\n\n2\n\n\n46086\n\n\n29908869\n\n\n\n\n2025\n\n\n3\n\n\n44946\n\n\n29970456\n\n\n\n\n2025\n\n\n4\n\n\n43703\n\n\n30032745\n\n\n\n\n2026\n\n\n1\n\n\n43739\n\n\n30095103\n\n\n\n\n\nUnas 44.000 entrevistas por trimestre representan a unos 30 millones de personas: la población de los 31 aglomerados.\nPara llegar a la región hay que recorrer todo el modelo, de personas a regiones. Con UNION ALL agregamos una fila con el total:\n\nSELECT r.nombre AS region,\n       SUM(h.pondera) AS poblacion\nFROM personas p\nINNER JOIN hogares h     ON p.codusu = h.codusu AND p.anio = h.anio\n                        AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\nINNER JOIN viviendas v   ON h.codusu = v.codusu\nINNER JOIN aglomerados a ON v.id_aglomerado = a.id\nINNER JOIN regiones r    ON a.id_region = r.id\nWHERE h.anio = 2026 AND h.trimestre = 1\nGROUP BY r.nombre\nUNION ALL\nSELECT 'Total',\n       SUM(h.pondera)\nFROM personas p\nINNER JOIN hogares h ON p.codusu = h.codusu AND p.anio = h.anio\n                    AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\nWHERE h.anio = 2026 AND h.trimestre = 1\nORDER BY poblacion;\n\n\n7 filas\n\n\n\n\nregion\n\n\npoblacion\n\n\n\n\n\n\nPatagonia\n\n\n1150084\n\n\n\n\nNoreste\n\n\n1488531\n\n\n\n\nCuyo\n\n\n1886015\n\n\n\n\nNoroeste\n\n\n2875102\n\n\n\n\nPampeana\n\n\n6460415\n\n\n\n\nGran Buenos Aires\n\n\n16234956\n\n\n\n\nTotal\n\n\n30095103",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#nivel-educativo-según-el-sexo",
+    "href": "06-consultas.html#nivel-educativo-según-el-sexo",
+    "title": "6  Consultas",
+    "section": "6.3 Nivel educativo según el sexo",
+    "text": "6.3 Nivel educativo según el sexo\nQueremos, para la población de 25 años o más, qué porcentaje de varones y qué porcentaje de mujeres alcanzó cada nivel. La consulta tiene pasos: armar el grupo de adultos, calcular los totales por sexo y dividir. Con WITH cada paso tiene nombre y se lee de arriba hacia abajo:\n\nWITH adultos AS (\n    SELECT p.sexo,\n           ne.descripcion AS nivel,\n           ne.orden,\n           h.pondera\n    FROM personas p\n    INNER JOIN hogares h            ON p.codusu = h.codusu AND p.anio = h.anio\n                                   AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\n    INNER JOIN niveles_educativos ne ON p.id_nivel_educativo = ne.id\n    WHERE h.anio = 2026 AND h.trimestre = 1 AND p.edad &gt;= 25\n),\ntotales AS (\n    SELECT SUM(CASE WHEN sexo = 1 THEN pondera ELSE 0 END) AS varones,\n           SUM(CASE WHEN sexo = 2 THEN pondera ELSE 0 END) AS mujeres\n    FROM adultos\n)\nSELECT a.nivel,\n       ROUND(100.0 * SUM(CASE WHEN a.sexo = 1 THEN a.pondera ELSE 0 END)\n             / t.varones, 1) AS pct_varones,\n       ROUND(100.0 * SUM(CASE WHEN a.sexo = 2 THEN a.pondera ELSE 0 END)\n             / t.mujeres, 1) AS pct_mujeres\nFROM adultos a\nCROSS JOIN totales t\nGROUP BY a.orden, a.nivel, t.varones, t.mujeres\nORDER BY a.orden;\n\n\n7 filas\n\n\n\n\nnivel\n\n\npct_varones\n\n\npct_mujeres\n\n\n\n\n\n\nSin instrucción\n\n\n0.4\n\n\n0.6\n\n\n\n\nPrimario incompleto (incluye educación especial)\n\n\n4.9\n\n\n4.2\n\n\n\n\nPrimario completo\n\n\n17.3\n\n\n15.8\n\n\n\n\nSecundario incompleto\n\n\n15.7\n\n\n12.7\n\n\n\n\nSecundario completo\n\n\n29.5\n\n\n28.4\n\n\n\n\nSuperior universitario incompleto\n\n\n12.5\n\n\n12.5\n\n\n\n\nSuperior universitario completo\n\n\n19.7\n\n\n25.8\n\n\n\n\n\nAcá se ve para qué servía la columna orden del catálogo: sin ella, «Sin instrucción» (código 7) quedaría al final.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#hogares-que-alquilan-2018-y-2026",
+    "href": "06-consultas.html#hogares-que-alquilan-2018-y-2026",
+    "title": "6  Consultas",
+    "section": "6.4 Hogares que alquilan, 2018 y 2026",
+    "text": "6.4 Hogares que alquilan, 2018 y 2026\nEl porcentaje de hogares inquilinos por región, en el primer trimestre de cada año. IN filtra los dos años, y cada CASE dentro de SUM separa un año del otro. Los hogares sin dato de tenencia quedan afuera del cálculo:\n\nSELECT r.nombre AS region,\n       ROUND(100.0 * SUM(CASE WHEN h.anio = 2018 AND h.id_tenencia = 3 THEN h.pondera ELSE 0 END)\n                   / SUM(CASE WHEN h.anio = 2018 THEN h.pondera ELSE 0 END), 1) AS pct_2018,\n       ROUND(100.0 * SUM(CASE WHEN h.anio = 2026 AND h.id_tenencia = 3 THEN h.pondera ELSE 0 END)\n                   / SUM(CASE WHEN h.anio = 2026 THEN h.pondera ELSE 0 END), 1) AS pct_2026\nFROM hogares h\nINNER JOIN viviendas v   ON h.codusu = v.codusu\nINNER JOIN aglomerados a ON v.id_aglomerado = a.id\nINNER JOIN regiones r    ON a.id_region = r.id\nWHERE h.trimestre = 1\n  AND h.anio IN (2018, 2026)\n  AND h.id_tenencia IS NOT NULL\nGROUP BY r.nombre\nORDER BY pct_2026 DESC;\n\n\n6 filas\n\n\n\n\nregion\n\n\npct_2018\n\n\npct_2026\n\n\n\n\n\n\nPatagonia\n\n\n23.2\n\n\n26.0\n\n\n\n\nPampeana\n\n\n21.9\n\n\n23.7\n\n\n\n\nGran Buenos Aires\n\n\n17.5\n\n\n21.0\n\n\n\n\nCuyo\n\n\n18.9\n\n\n19.5\n\n\n\n\nNoroeste\n\n\n14.5\n\n\n15.0\n\n\n\n\nNoreste\n\n\n15.5\n\n\n13.8",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#hogares-con-algún-desocupado",
+    "href": "06-consultas.html#hogares-con-algún-desocupado",
+    "title": "6  Consultas",
+    "section": "6.5 Hogares con algún desocupado",
+    "text": "6.5 Hogares con algún desocupado\nComo dice C04, la mayor potencia de IN aparece con subconsultas. ¿Cuántas personas viven en un hogar donde hay al menos un desocupado? La subconsulta devuelve las claves de esos hogares e IN se queda con todas las personas que los integran:\n\nSELECT COUNT(*) AS personas_encuestadas,\n       SUM(h.pondera) AS poblacion\nFROM personas p\nINNER JOIN hogares h ON p.codusu = h.codusu AND p.anio = h.anio\n                    AND p.trimestre = h.trimestre AND p.nro_hogar = h.nro_hogar\nWHERE p.anio = 2026 AND p.trimestre = 1\n  AND (p.codusu, p.anio, p.trimestre, p.nro_hogar) IN (\n        SELECT codusu,\n               anio,\n               trimestre,\n               nro_hogar\n        FROM personas\n        WHERE id_condicion_actividad = 2\n          AND anio = 2026 AND trimestre = 1\n      );\n\n\n1 fila\n\n\n\n\npersonas_encuestadas\n\n\npoblacion\n\n\n\n\n\n\n4914\n\n\n4190977\n\n\n\n\n\nComo la clave del hogar tiene cuatro columnas, IN compara las cuatro juntas, escritas entre paréntesis.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#tres-generaciones-bajo-un-mismo-techo",
+    "href": "06-consultas.html#tres-generaciones-bajo-un-mismo-techo",
+    "title": "6  Consultas",
+    "section": "6.6 Tres generaciones bajo un mismo techo",
+    "text": "6.6 Tres generaciones bajo un mismo techo\n¿En qué aglomerados es más frecuente que convivan tres generaciones o más? El parentesco con el jefe dice a qué generación pertenece cada persona: la madre, el padre o los suegros están una arriba; el jefe, su cónyuge y sus hermanos, en la misma; hijos, yernos y nueras, una abajo; los nietos, dos abajo. Un hogar tiene tres generaciones si sus integrantes cubren al menos tres de esos niveles.\n\nWITH generaciones AS (\n    SELECT codusu,\n           anio,\n           trimestre,\n           nro_hogar,\n           COUNT(DISTINCT CASE WHEN id_parentesco IN (6, 7)    THEN  1\n                               WHEN id_parentesco IN (1, 2, 8) THEN  0\n                               WHEN id_parentesco IN (3, 4)    THEN -1\n                               WHEN id_parentesco = 5          THEN -2\n                          END) AS cantidad\n    FROM personas\n    WHERE anio = 2026 AND trimestre = 1\n    GROUP BY codusu, anio, trimestre, nro_hogar\n)\nSELECT a.nombre AS aglomerado,\n       ROUND(100.0 * SUM(CASE WHEN g.cantidad &gt;= 3 THEN h.pondera ELSE 0 END)\n             / SUM(h.pondera), 1) AS pct_tres_generaciones\nFROM generaciones g\nINNER JOIN hogares h     ON g.codusu = h.codusu AND g.anio = h.anio\n                        AND g.trimestre = h.trimestre AND g.nro_hogar = h.nro_hogar\nINNER JOIN viviendas v   ON h.codusu = v.codusu\nINNER JOIN aglomerados a ON v.id_aglomerado = a.id\nGROUP BY a.nombre\nORDER BY pct_tres_generaciones DESC\nLIMIT 10;\n\n\n10 filas\n\n\n\n\naglomerado\n\n\npct_tres_generaciones\n\n\n\n\n\n\nFormosa\n\n\n17.2\n\n\n\n\nGran Salta\n\n\n16.9\n\n\n\n\nJujuy-Palpalá\n\n\n15.6\n\n\n\n\nLa Rioja\n\n\n13.2\n\n\n\n\nCorrientes\n\n\n13.0\n\n\n\n\nGran Tucumán-Tafí Viejo\n\n\n12.3\n\n\n\n\nGran Resistencia\n\n\n11.9\n\n\n\n\nSantiago del Estero-La Banda\n\n\n11.9\n\n\n\n\nGran San Luis\n\n\n11.7\n\n\n\n\nGran Mendoza\n\n\n11.2\n\n\n\n\n\nLos otros familiares y los no familiares no tienen un nivel definido: el CASE les asigna NULL y COUNT(DISTINCT ...) no los cuenta.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#los-atributos-derivados-en-una-vista",
+    "href": "06-consultas.html#los-atributos-derivados-en-una-vista",
+    "title": "6  Consultas",
+    "section": "6.7 Los atributos derivados, en una vista",
+    "text": "6.7 Los atributos derivados, en una vista\nEn el modelo decidimos no guardar la cantidad de miembros ni el ingreso per cápita familiar. Una vista los calcula cada vez que se los necesita: es una consulta guardada con nombre, que después se usa como si fuera una tabla.\n\nCREATE VIEW ingresos_hogares AS\nSELECT h.codusu,\n       h.anio,\n       h.trimestre,\n       h.nro_hogar,\n       COUNT(*) AS miembros,\n       h.ingreso_total_familiar,\n       ROUND(h.ingreso_total_familiar / COUNT(*), 2) AS ingreso_per_capita,\n       h.pondih\nFROM hogares h\nINNER JOIN personas p ON h.codusu = p.codusu AND h.anio = p.anio\n                     AND h.trimestre = p.trimestre AND h.nro_hogar = p.nro_hogar\nGROUP BY h.codusu, h.anio, h.trimestre, h.nro_hogar;\n\nUn detalle que conecta con la normalización: la consulta agrupa solo por la clave primaria de hogares y, aun así, puede mostrar h.ingreso_total_familiar sin agregarlo. PostgreSQL acepta eso porque sabe que la clave primaria determina el resto de las columnas. Es una dependencia funcional, y el motor la usa.\n\nSELECT *\nFROM ingresos_hogares\nLIMIT 5;\n\n\n5 filas\n\n\n\n\ncodusu\n\n\nanio\n\n\ntrimestre\n\n\nnro_hogar\n\n\nmiembros\n\n\ningreso_total_familiar\n\n\ningreso_per_capita\n\n\npondih\n\n\n\n\n\n\nTQRMNOPPQHJKKRCDEGPDJ00658291\n\n\n2020\n\n\n2\n\n\n1\n\n\n1\n\n\n67000\n\n\n67000\n\n\n234\n\n\n\n\nTQRMNOPPQHJKKRCDEGPDJ00658291\n\n\n2020\n\n\n3\n\n\n2\n\n\n2\n\n\n33600\n\n\n16800\n\n\n80\n\n\n\n\nTQRMNOPPQHJKKRCDEGPDJ00658291\n\n\n2021\n\n\n2\n\n\n2\n\n\n2\n\n\n36000\n\n\n18000\n\n\n143\n\n\n\n\nTQRMNOPPQHJKKRCDEGPDJ00658291\n\n\n2021\n\n\n3\n\n\n2\n\n\n2\n\n\n47000\n\n\n23500\n\n\n150\n\n\n\n\nTQRMNOPPQHJKKSCDEHJGH00790191\n\n\n2022\n\n\n3\n\n\n1\n\n\n1\n\n\n36000\n\n\n36000\n\n\n184",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#el-ingreso-per-cápita-trimestre-a-trimestre",
+    "href": "06-consultas.html#el-ingreso-per-cápita-trimestre-a-trimestre",
+    "title": "6  Consultas",
+    "section": "6.8 El ingreso per cápita, trimestre a trimestre",
+    "text": "6.8 El ingreso per cápita, trimestre a trimestre\nPara los ingresos del hogar INDEC indica usar PONDIH, el ponderador corregido por no respuesta. El promedio ponderado es la suma de cada valor por su peso, dividida la suma de los pesos:\n\nSELECT anio,\n       trimestre,\n       ROUND(SUM(ingreso_per_capita * pondih) / SUM(pondih)) AS ipcf_promedio\nFROM ingresos_hogares\nWHERE trimestre = 1\nGROUP BY anio, trimestre\nORDER BY anio;\n\n\n9 filas\n\n\n\n\nanio\n\n\ntrimestre\n\n\nipcf_promedio\n\n\n\n\n\n\n2018\n\n\n1\n\n\n12795\n\n\n\n\n2019\n\n\n1\n\n\n16767\n\n\n\n\n2020\n\n\n1\n\n\n25313\n\n\n\n\n2021\n\n\n1\n\n\n30839\n\n\n\n\n2022\n\n\n1\n\n\n48514\n\n\n\n\n2023\n\n\n1\n\n\n95979\n\n\n\n\n2024\n\n\n1\n\n\n284874\n\n\n\n\n2025\n\n\n1\n\n\n650984\n\n\n\n\n2026\n\n\n1\n\n\n870568\n\n\n\n\n\nLos hogares que no respondieron tienen NULL en el ingreso y 0 en PONDIH, así que no pesan en el resultado.\nComo el sitio se genera con R, el resultado de una consulta también se puede guardar en un data.frame y graficar. Abrí el código para ver cómo:\n\nSELECT anio + (trimestre - 1) / 4.0 AS periodo,\n       SUM(ingreso_per_capita * pondih) / SUM(pondih) AS ipcf_promedio\nFROM ingresos_hogares\nGROUP BY anio, trimestre\nORDER BY anio, trimestre;\n\n\n\nCódigo R del gráfico\npar(mar = c(4, 6, 1, 1), family = \"sans\", las = 1)\nplot(ipcf$periodo, ipcf$ipcf_promedio, type = \"l\", log = \"y\", lwd = 2.5,\n     col = \"#E08A1E\", xlab = \"\", ylab = \"\", axes = FALSE)\npoints(ipcf$periodo, ipcf$ipcf_promedio, pch = 19, cex = .6, col = \"#1C1A3A\")\naxis(1, at = 2018:2026, col = \"#6B6880\", col.axis = \"#2A2838\")\nmarcas &lt;- c(10e3, 30e3, 100e3, 300e3, 1e6)\naxis(2, at = marcas, labels = format(marcas, big.mark = \".\", scientific = FALSE),\n     col = \"#6B6880\", col.axis = \"#2A2838\")\ngrid(nx = NA, ny = NULL, col = \"#E6E1D8\", lty = 1)\n\n\n\n\n\n\n\n\nFigura 6.1: Ingreso per cápita familiar promedio, en pesos corrientes (escala logarítmica).\n\n\n\n\n\nSon pesos corrientes: la curva muestra sobre todo la inflación. Para hablar de ingresos reales hay que deflactar con el índice de precios, que se puede traer de una API pública. Queda como puente hacia la unidad 5.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#una-vista-materializada",
+    "href": "06-consultas.html#una-vista-materializada",
+    "title": "6  Consultas",
+    "section": "6.9 Una vista materializada",
+    "text": "6.9 Una vista materializada\nLa vista anterior se recalcula cada vez que se consulta. Para un resumen que se mira seguido y cambia poco, conviene una vista materializada: se calcula una vez y el resultado queda guardado.\n\nCREATE MATERIALIZED VIEW resumen_trimestral AS\nSELECT r.nombre AS region,\n       h.anio,\n       h.trimestre,\n       SUM(h.pondera) AS hogares,\n       ROUND(100.0 * SUM(CASE WHEN h.id_tenencia = 3 THEN h.pondera ELSE 0 END)\n             / SUM(h.pondera), 1) AS pct_inquilinos,\n       ROUND(SUM(i.ingreso_per_capita * i.pondih) / SUM(i.pondih)) AS ipcf_promedio\nFROM hogares h\nINNER JOIN ingresos_hogares i ON h.codusu = i.codusu AND h.anio = i.anio\n                             AND h.trimestre = i.trimestre AND h.nro_hogar = i.nro_hogar\nINNER JOIN viviendas v   ON h.codusu = v.codusu\nINNER JOIN aglomerados a ON v.id_aglomerado = a.id\nINNER JOIN regiones r    ON a.id_region = r.id\nGROUP BY r.nombre, h.anio, h.trimestre;\n\nConsultarla es leer 198 filas ya calculadas, en lugar de recorrer más de un millón y medio:\n\nSELECT region,\n       hogares,\n       pct_inquilinos,\n       ipcf_promedio\nFROM resumen_trimestral\nWHERE anio = 2026 AND trimestre = 1\nORDER BY hogares DESC;\n\n\n6 filas\n\n\n\n\nregion\n\n\nhogares\n\n\npct_inquilinos\n\n\nipcf_promedio\n\n\n\n\n\n\nGran Buenos Aires\n\n\n5400681\n\n\n21.0\n\n\n916528\n\n\n\n\nPampeana\n\n\n2427613\n\n\n23.7\n\n\n899239\n\n\n\n\nNoroeste\n\n\n869782\n\n\n15.0\n\n\n669758\n\n\n\n\nCuyo\n\n\n608539\n\n\n19.5\n\n\n698870\n\n\n\n\nNoreste\n\n\n482117\n\n\n13.8\n\n\n585728\n\n\n\n\nPatagonia\n\n\n419018\n\n\n25.9\n\n\n1106020\n\n\n\n\n\nEl precio es que no se entera sola de los cambios. Cuando INDEC publique el segundo trimestre de 2026 y lo carguemos, hay que actualizarla:\n\nREFRESH MATERIALIZED VIEW resumen_trimestral;",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "06-consultas.html#las-cinco-preguntas",
+    "href": "06-consultas.html#las-cinco-preguntas",
+    "title": "6  Consultas",
+    "section": "6.10 Las cinco preguntas",
+    "text": "6.10 Las cinco preguntas\n\n\n\n\n\n\n\nPregunta\nDónde quedó\n\n\n\n\nPoblación por región y trimestre\nINNER JOIN de personas a regiones, SUM(pondera) y UNION ALL para el total\n\n\nNivel educativo según el sexo\nWITH en dos pasos y el orden del catálogo\n\n\nHogares que alquilan\nCASE dentro de SUM para comparar 2018 con 2026\n\n\nTres generaciones\nWITH, COUNT(DISTINCT ...) sobre un CASE\n\n\nIngreso per cápita\nVista con los atributos derivados y promedio ponderado con PONDIH\n\n\n\nEl mismo modelo sirve para lo que viene: en la unidad 4 estas tablas se pueden exportar a Parquet y consultar con DuckDB, y en la unidad 6 vemos cómo se reorganizan datos como estos en un modelo dimensional.",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>Consultas</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-csv.html",
+    "href": "apendice-csv.html",
+    "title": "Apéndice A. Cómo se armaron los CSV",
+    "section": "",
+    "text": "A.1 Por qué no alcanza con COPY\nLos archivos hogares.csv y personas.csv salen de las bases de microdatos que INDEC publica en su página de bases de datos, en la sección de la Encuesta Permanente de Hogares. Cada trimestre es un .zip con dos archivos de texto, uno de hogares y otro de personas.\nEntre el primer trimestre de 2018 y el primero de 2026 son 66 archivos, y no son todos iguales:\nCOPY necesita que el archivo tenga las mismas columnas que la tabla, en el mismo orden, y no puede saltear ninguna. Cargar los originales solo con SQL obligaría a crear una tabla de staging de hasta 235 columnas por cada formato. Por eso este paso previo se hace con un script de R, que lee cada archivo, busca las columnas por nombre y se queda con las 12 de hogares y las 17 de personas.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Cómo se armaron los CSV</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-csv.html#por-qué-no-alcanza-con-copy",
+    "href": "apendice-csv.html#por-qué-no-alcanza-con-copy",
+    "title": "Apéndice A. Cómo se armaron los CSV",
+    "section": "",
+    "text": "Cambian los nombres. Conviven usu_hogar_T126.txt, Usu_hogar_T319.txt y EPH_usu_personas_4to.trim_2020.txt.txt, entre otros.\nCambian las columnas. Según el trimestre, el archivo de hogares trae 88, 89 o 98 columnas, y el de personas entre 177 y 235, no siempre en el mismo orden.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Cómo se armaron los CSV</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-csv.html#los-originales",
+    "href": "apendice-csv.html#los-originales",
+    "title": "Apéndice A. Cómo se armaron los CSV",
+    "section": "A.2 Los originales",
+    "text": "A.2 Los originales\nEl script baja los 33 .zip de INDEC, unos 100 MB. Si ya los tenés, por ejemplo copiados de la carpeta Originales INDEC del Drive del curso, ponelos en una carpeta eph y el script se saltea la descarga.\nEsa carpeta eph se busca dentro del directorio de trabajo de R. Para ver cuál es, getwd(); para cambiarlo, setwd() o, en RStudio, Session, Set Working Directory, Choose Directory…",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Cómo se armaron los CSV</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-csv.html#el-script",
+    "href": "apendice-csv.html#el-script",
+    "title": "Apéndice A. Cómo se armaron los CSV",
+    "section": "A.3 El script",
+    "text": "A.3 El script\n\n# Descarga y preparación de la EPH (INDEC), del 1.er trimestre de 2018 al 1.er trimestre de 2026.\n# Genera dos archivos listos para importar en PostgreSQL: eph/hogares.csv y eph/personas.csv\n#\n# Todo se guarda en la carpeta \"eph\", dentro del directorio de trabajo de R.\n# Para ver cuál es: getwd(). Para cambiarlo: setwd(), o en RStudio\n# Session &gt; Set Working Directory &gt; Choose Directory...\n#\n# Si ya bajaste los .zip del Drive del curso, copialos a la carpeta \"eph\":\n# el script no vuelve a descargar los que ya están.\n\ncarpeta &lt;- \"eph\"\ndir.create(carpeta, showWarnings = FALSE)\noptions(timeout = 600)\n\n# 1. Descargar y descomprimir los 33 trimestres\nbase_url &lt;- \"https://www.indec.gob.ar/ftp/cuadros/menusuperior/eph/\"\nperiodos &lt;- expand.grid(trimestre = 1:4, anio = 2018:2026)\nperiodos &lt;- subset(periodos, anio &lt; 2026 | trimestre == 1)   # último publicado: 1T 2026\n\nfor (i in seq_len(nrow(periodos))) {\n  zip &lt;- sprintf(\"EPH_usu_%d_Trim_%d_txt.zip\", periodos$trimestre[i], periodos$anio[i])\n  destino &lt;- file.path(carpeta, zip)\n  if (!file.exists(destino)) download.file(paste0(base_url, zip), destino, mode = \"wb\")\n  unzip(destino, exdir = carpeta, junkpaths = TRUE)\n}\n\n# 2. Quedarse con las columnas que usamos y juntar los trimestres\ncol_hogar   &lt;- c(\"CODUSU\", \"ANO4\", \"TRIMESTRE\", \"NRO_HOGAR\", \"REGION\", \"AGLOMERADO\",\n                 \"PONDERA\", \"II7\", \"IX_TOT\", \"ITF\", \"IPCF\", \"PONDIH\")\ncol_persona &lt;- c(\"CODUSU\", \"ANO4\", \"TRIMESTRE\", \"NRO_HOGAR\", \"COMPONENTE\", \"REGION\",\n                 \"AGLOMERADO\", \"PONDERA\", \"CH03\", \"CH04\", \"CH06\", \"NIVEL_ED\", \"ESTADO\",\n                 \"P21\", \"P47T\", \"ITF\", \"IPCF\")\n\n# Se lee todo como texto: la limpieza se hace después, en SQL\nleer &lt;- function(archivo, columnas) {\n  datos &lt;- read.csv2(archivo, colClasses = \"character\", na.strings = c(\"\", \"NA\"))\n  names(datos) &lt;- toupper(names(datos))\n  datos[as.integer(datos$ANO4) &gt;= 2018, columnas]\n}\n\n# Los nombres de los archivos cambian de un trimestre a otro: se buscan por patrón\ntxt &lt;- list.files(carpeta, pattern = \"\\\\.txt$\", full.names = TRUE)\nhogares  &lt;- do.call(rbind, lapply(grep(\"hogar\", txt, ignore.case = TRUE, value = TRUE),\n                                  leer, columnas = col_hogar))\npersonas &lt;- do.call(rbind, lapply(grep(\"individual|personas\", txt, ignore.case = TRUE, value = TRUE),\n                                  leer, columnas = col_persona))\nnames(hogares)  &lt;- tolower(names(hogares))\nnames(personas) &lt;- tolower(names(personas))\n\n# 3. Guardar los CSV\nwrite.csv(hogares,  file.path(carpeta, \"hogares.csv\"),  row.names = FALSE, na = \"\")\nwrite.csv(personas, file.path(carpeta, \"personas.csv\"), row.names = FALSE, na = \"\")\n\ncat(\"Hogares:\", nrow(hogares), \"filas\\nPersonas:\", nrow(personas), \"filas\\n\")\ncat(\"Rutas completas, para usar en \\\\copy:\\n\")\ncat(normalizePath(file.path(carpeta, c(\"hogares.csv\", \"personas.csv\")), winslash = \"/\"), sep = \"\\n\")\n\nTambién se puede descargar. Tarda alrededor de un minuto, más el tiempo de descarga. Al terminar muestra la cantidad de filas de cada archivo y su ruta completa, lista para usar en \\copy.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>A</span>  <span class='chapter-title'>Cómo se armaron los CSV</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-sitio.html",
+    "href": "apendice-sitio.html",
+    "title": "Apéndice B. Cómo se generó este sitio",
+    "section": "",
+    "text": "B.1 R como motor\nEste cuaderno es un libro de Quarto, un sistema que mezcla texto en Markdown con bloques de código y los convierte en un sitio web. Lo particular es que el código no se pega como ilustración: se ejecuta al generar el sitio y lo que ves debajo de cada consulta es lo que respondió PostgreSQL.\nQuarto delega la ejecución en un motor. Acá usamos knitr, el de R, que sabe ejecutar bloques SQL a través de una conexión DBI, la misma que usarían en un script de R. Cada capítulo empieza con un bloque oculto que abre la conexión:\nCon eso, un bloque SQL del documento fuente se escribe así:\nknitr manda la consulta por la conexión y convierte el resultado en una tabla. Si al bloque se le agrega la opción output.var, el resultado queda en un data.frame de R en lugar de mostrarse; así se hizo el gráfico del ingreso per cápita.\nDos detalles técnicos:",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Cómo se generó este sitio</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-sitio.html#r-como-motor",
+    "href": "apendice-sitio.html#r-como-motor",
+    "title": "Apéndice B. Cómo se generó este sitio",
+    "section": "",
+    "text": "library(DBI)\n\ncon &lt;- dbConnect(\n  RPostgreSQL::PostgreSQL(),\n  dbname   = \"eph\",\n  host     = \"localhost\",\n  user     = \"postgres\",\n  password = Sys.getenv(\"PGPASSWORD\")\n)\n\nknitr::opts_chunk$set(connection = \"con\")\n\n```{sql}\nSELECT nombre\nFROM regiones\nORDER BY nombre;\n```\n\n\n\nknitr reconoce como sentencias sin resultado solo INSERT, UPDATE, DELETE, CREATE y DROP. Para COMMENT, REFRESH o ANALYZE hay un pequeño envoltorio que las ejecuta con dbExecute(). El mismo envoltorio escribe en castellano el pie de cada tabla.\n\\copy no es SQL sino un comando de psql, así que no puede viajar por DBI. En el capítulo 5 se ejecuta desde R llamando a psql con system2(), en un bloque oculto.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Cómo se generó este sitio</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-sitio.html#los-diagramas-también-son-código",
+    "href": "apendice-sitio.html#los-diagramas-también-son-código",
+    "title": "Apéndice B. Cómo se generó este sitio",
+    "section": "B.2 Los diagramas también son código",
+    "text": "B.2 Los diagramas también son código\nEl DER está escrito en el lenguaje de Graphviz, que Quarto convierte en imagen al generar el sitio. Las cajas del esquema lógico son HTML con estilos propios, armadas como las de la presentación C02-3. Tener los diagramas como texto permite corregirlos como cualquier otro código y versionarlos junto con el resto del libro.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Cómo se generó este sitio</span>"
+    ]
+  },
+  {
+    "objectID": "apendice-sitio.html#para-regenerarlo",
+    "href": "apendice-sitio.html#para-regenerarlo",
+    "title": "Apéndice B. Cómo se generó este sitio",
+    "section": "B.3 Para regenerarlo",
+    "text": "B.3 Para regenerarlo\nHace falta:\n\nQuarto.\nR con los paquetes DBI, RPostgreSQL, knitr y rmarkdown.\nPostgreSQL con una base eph vacía, y psql disponible en la línea de comandos.\nLos archivos hogares.csv y personas.csv del capítulo 5.\n\nLa contraseña de PostgreSQL y la carpeta de los CSV se pasan como variables de entorno, y después se genera el libro desde la carpeta del proyecto:\nexport PGPASSWORD=\"tu_contraseña\"\nexport EPH_DATOS=\"/ruta/a/la/carpeta/eph\"\nquarto render\nLos capítulos se ejecutan en orden: el 4 crea las tablas, el 5 las carga y el 6 las consulta. Todo el proceso tarda unos dos minutos y el resultado queda en la carpeta _book, un sitio estático que se puede abrir en el navegador o publicar, por ejemplo, en GitHub Pages.",
+    "crumbs": [
+      "Apéndices",
+      "<span class='chapter-number'>B</span>  <span class='chapter-title'>Cómo se generó este sitio</span>"
+    ]
+  }
+]

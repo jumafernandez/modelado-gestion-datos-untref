@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>5&nbsp; Carga masiva – De la EPH a PostgreSQL</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./06-consultas.html" rel="next">
+<link href="./04-fisico.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-389c8454c5e4e6bc782f9b651a3c44a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b44f78f901b27984fc33087947597b98.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./05-carga.html"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">De la EPH a PostgreSQL</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Presentación</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">El dataset y las preguntas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-conceptual.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-logico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-fisico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-carga.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-consultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Apéndices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-csv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Cómo se armaron los CSV</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-sitio.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Cómo se generó este sitio</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul class="collapse">
+  <li><a href="#conseguir-los-datos" id="toc-conseguir-los-datos" class="nav-link active" data-scroll-target="#conseguir-los-datos"><span class="header-section-number">5.1</span> Conseguir los datos</a></li>
+  <li><a href="#la-ruta-de-los-archivos" id="toc-la-ruta-de-los-archivos" class="nav-link" data-scroll-target="#la-ruta-de-los-archivos"><span class="header-section-number">5.2</span> La ruta de los archivos</a></li>
+  <li><a href="#copy-y-copy" id="toc-copy-y-copy" class="nav-link" data-scroll-target="#copy-y-copy"><span class="header-section-number">5.3</span> COPY y <code>\copy</code></a></li>
+  <li><a href="#primero-a-una-tabla-de-staging" id="toc-primero-a-una-tabla-de-staging" class="nav-link" data-scroll-target="#primero-a-una-tabla-de-staging"><span class="header-section-number">5.4</span> Primero, a una tabla de staging</a></li>
+  <li><a href="#se-cumplen-las-dependencias" id="toc-se-cumplen-las-dependencias" class="nav-link" data-scroll-target="#se-cumplen-las-dependencias"><span class="header-section-number">5.5</span> ¿Se cumplen las dependencias?</a></li>
+  <li><a href="#del-staging-al-modelo" id="toc-del-staging-al-modelo" class="nav-link" data-scroll-target="#del-staging-al-modelo"><span class="header-section-number">5.6</span> Del staging al modelo</a></li>
+  <li><a href="#control-final" id="toc-control-final" class="nav-link" data-scroll-target="#control-final"><span class="header-section-number">5.7</span> Control final</a></li>
+  <li><a href="#sec-scripts" id="toc-sec-scripts" class="nav-link" data-scroll-target="#sec-scripts"><span class="header-section-number">5.8</span> Los scripts</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-carga" class="quarto-section-identifier"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Las tablas están creadas y vacías. En este capítulo cargamos los datos en bloque y los pasamos al modelo, todo con SQL. Es lo que vimos en la presentación C03-2 con <code>COPY</code>, ahora con un millón y medio de filas.</p>
+<section id="conseguir-los-datos" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="conseguir-los-datos"><span class="header-section-number">5.1</span> Conseguir los datos</h2>
+<p>Los dos archivos, <code>hogares.csv</code> y <code>personas.csv</code>, están listos en la carpeta <a href="https://drive.google.com/drive/folders/1ERQ2mF4KhEytgb7z7zhks5w0LWRx6ouw">datos</a> del Drive del curso, comprimidos en <code>hogares.zip</code> y <code>personas.zip</code>. Bajalos y descomprimilos en una carpeta llamada <code>eph</code>. Desde acá todo es SQL.</p>
+<p>Si te interesa cómo se armaron esos archivos a partir de las bases que publica INDEC, está en el <a href="./apendice-csv.html">apéndice A</a>.</p>
+</section>
+<section id="la-ruta-de-los-archivos" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="la-ruta-de-los-archivos"><span class="header-section-number">5.2</span> La ruta de los archivos</h2>
+<p>Para cargar un archivo hay que decirle a PostgreSQL dónde está, con su <strong>ruta completa</strong>. Es el error más común de este capítulo, así que vale la pena detenerse.</p>
+<p>La ruta completa empieza desde la raíz del disco:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Sistema</th>
+<th>Ejemplo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Windows</td>
+<td><code>C:/Users/ana/Downloads/eph/hogares.csv</code></td>
+</tr>
+<tr class="even">
+<td>Mac</td>
+<td><code>/Users/ana/Downloads/eph/hogares.csv</code></td>
+</tr>
+</tbody>
+</table>
+<p>Dos formas de conseguirla sin tipearla:</p>
+<ul>
+<li><strong>En Windows</strong>, con Shift y clic derecho sobre el archivo, <em>Copiar como ruta de acceso</em>.</li>
+<li><strong>En Mac</strong>, con clic derecho sobre el archivo y la tecla Opción apretada: <em>Copiar «hogares.csv» como nombre de ruta</em>.</li>
+</ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Comillas en Windows
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><em>Copiar como ruta de acceso</em> trae la ruta entre comillas dobles. En <code>COPY</code> y <code>\copy</code> la ruta va entre comillas simples, así que hay que cambiarlas. Las barras invertidas, como en el ejemplo de C03-2 (<code>C:\sampledb\persons.csv</code>), funcionan igual que las comunes.</p>
+</div>
+</div>
+</section>
+<section id="copy-y-copy" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="copy-y-copy"><span class="header-section-number">5.3</span> COPY y <code>\copy</code></h2>
+<p>Las dos leen un archivo y lo cargan en una tabla, con la sintaxis de C03-2: <code>DELIMITER ','</code> indica el separador y <code>CSV HEADER</code>, que el archivo es un CSV con los nombres de las columnas en la primera línea. La diferencia es quién lee el archivo:</p>
+<ul>
+<li><code>COPY</code> es una sentencia SQL y la ejecuta <strong>el servidor</strong>. El archivo tiene que estar en la máquina del servidor y el servidor necesita permiso para leerlo. En Windows, el servicio de PostgreSQL corre con un usuario del sistema que no puede entrar a tu carpeta de descargas, y <code>COPY</code> falla con <em>Permission denied</em>.</li>
+<li><code>\copy</code> es un comando de <code>psql</code>, el cliente. Lee el archivo con tus permisos y le manda los datos al servidor. Por eso casi siempre funciona.</li>
+</ul>
+<p><code>\copy</code> se escribe en <code>psql</code> (en Windows, <em>SQL Shell (psql)</em>; en pgAdmin, <em>Tools</em> y luego <em>PSQL Tool</em>). No es SQL, así que no funciona en el <em>Query Tool</em>. Si preferís no salir de pgAdmin, el menú <em>Import/Export Data…</em> de cada tabla hace lo mismo con una ventana: formato <em>csv</em> y la opción <em>Header</em> activada.</p>
+</section>
+<section id="primero-a-una-tabla-de-staging" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="primero-a-una-tabla-de-staging"><span class="header-section-number">5.4</span> Primero, a una tabla de staging</h2>
+<p>Los archivos no se cargan directo en <code>hogares</code> y <code>personas</code>. Primero van a tablas de <strong>staging</strong> (de carga intermedia) con las mismas columnas que el CSV, todas de tipo texto. Hay buenas razones:</p>
+<ul>
+<li>Los archivos tienen sorpresas. Los montos mezclan coma y punto decimal, en algunos trimestres vienen en notación científica (<code>9e+05</code>) y la falta de respuesta se codifica con <code>-9</code>. Con columnas de texto la carga nunca falla por eso.</li>
+<li>La limpieza queda escrita en SQL, a la vista, en vez de esconderse en un programa aparte.</li>
+<li>Antes de pasar los datos al modelo podemos verificarlos con consultas.</li>
+</ul>
+<p>Las nombramos con el prefijo <code>stg_</code> para distinguirlas de las tablas del modelo:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> stg_hogares (</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    codusu text, ano4 text, trimestre text, nro_hogar text,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    region text, aglomerado text, pondera text, ii7 text,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    ix_tot text, itf text, ipcf text, pondih text</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>);</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">TABLE</span> stg_personas (</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    codusu text, ano4 text, trimestre text, nro_hogar text, componente text,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    region text, aglomerado text, pondera text,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    ch03 text, ch04 text, ch06 text, nivel_ed text, estado text,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    p21 text, p47t text, itf text, ipcf text</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Ahora sí, la carga. Elegí la pestaña de tu sistema y cambiá <code>ana</code> por tu usuario:</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">Windows</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">Mac</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>\<span class="kw">copy</span> stg_hogares  <span class="kw">FROM</span> <span class="st">'C:/Users/ana/Downloads/eph/hogares.csv'</span>  DELIMITER <span class="st">','</span> CSV <span class="kw">HEADER</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>\<span class="kw">copy</span> stg_personas <span class="kw">FROM</span> <span class="st">'C:/Users/ana/Downloads/eph/personas.csv'</span> DELIMITER <span class="st">','</span> CSV <span class="kw">HEADER</span></span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>\<span class="kw">copy</span> stg_hogares  <span class="kw">FROM</span> <span class="st">'/Users/ana/Downloads/eph/hogares.csv'</span>  DELIMITER <span class="st">','</span> CSV <span class="kw">HEADER</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>\<span class="kw">copy</span> stg_personas <span class="kw">FROM</span> <span class="st">'/Users/ana/Downloads/eph/personas.csv'</span> DELIMITER <span class="st">','</span> CSV <span class="kw">HEADER</span></span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
+<p>Cada <code>\copy</code> responde con la cantidad de filas cargadas. Lo confirmamos:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'stg_hogares'</span> <span class="kw">AS</span> tabla,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> filas</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">UNION</span> <span class="kw">ALL</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'stg_personas'</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_personas;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+2 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+tabla
+</th>
+<th style="text-align:right;">
+filas
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+stg_hogares
+</td>
+<td style="text-align:right;">
+551081
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+stg_personas
+</td>
+<td style="text-align:right;">
+1634288
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="se-cumplen-las-dependencias" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="se-cumplen-las-dependencias"><span class="header-section-number">5.5</span> ¿Se cumplen las dependencias?</h2>
+<p>En el capítulo 3 normalizamos a partir de dependencias funcionales que dedujimos del dominio. Con los datos cargados las podemos comprobar. La idea es siempre la misma: agrupar por el lado izquierdo de la dependencia y buscar grupos con más de un valor del lado derecho. Si no aparece ninguno, la dependencia se cumple.</p>
+<p>¿Cada vivienda está en un solo aglomerado?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> codusu,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="kw">DISTINCT</span> aglomerado) <span class="kw">AS</span> aglomerados</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> codusu</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> <span class="fu">COUNT</span>(<span class="kw">DISTINCT</span> aglomerado) <span class="op">&gt;</span> <span class="dv">1</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+0 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+codusu
+</th>
+<th style="text-align:right;">
+aglomerados
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+</div>
+<p>¿Cada aglomerado está en una sola región?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> aglomerado,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="kw">DISTINCT</span> region) <span class="kw">AS</span> regiones</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> aglomerado</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> <span class="fu">COUNT</span>(<span class="kw">DISTINCT</span> region) <span class="op">&gt;</span> <span class="dv">1</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+0 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+aglomerado
+</th>
+<th style="text-align:right;">
+regiones
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+</div>
+<p>¿El ponderador que se repite en cada persona es el de su hogar?</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> personas_con_otro_ponderador</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_personas p</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> stg_hogares h <span class="kw">ON</span> h.codusu <span class="op">=</span> p.codusu <span class="kw">AND</span> h.ano4 <span class="op">=</span> p.ano4</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                        <span class="kw">AND</span> h.trimestre <span class="op">=</span> p.trimestre <span class="kw">AND</span> h.nro_hogar <span class="op">=</span> p.nro_hogar</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> p.pondera <span class="op">&lt;&gt;</span> h.pondera;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+1 fila
+</caption>
+<thead>
+<tr>
+<th style="text-align:right;">
+personas_con_otro_ponderador
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Las tres dependencias se cumplen. Ahora, el costo de la redundancia. El ingreso total familiar está guardado dos veces, en el archivo de hogares y en cada persona del archivo de personas. ¿Dicen lo mismo? Lo comparamos como número, porque el mismo monto puede venir escrito <code>900000</code> en un archivo y <code>9e+05</code> en el otro:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> p.codusu,</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>       p.ano4,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>       p.trimestre,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>       p.nro_hogar,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">MIN</span>(h.itf) <span class="kw">AS</span> itf_archivo_hogares,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">MIN</span>(p.itf) <span class="kw">AS</span> itf_archivo_personas</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_personas p</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> stg_hogares h <span class="kw">ON</span> h.codusu <span class="op">=</span> p.codusu <span class="kw">AND</span> h.ano4 <span class="op">=</span> p.ano4</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                        <span class="kw">AND</span> h.trimestre <span class="op">=</span> p.trimestre <span class="kw">AND</span> h.nro_hogar <span class="op">=</span> p.nro_hogar</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="kw">REPLACE</span>(p.itf, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span> <span class="op">&lt;&gt;</span> <span class="kw">REPLACE</span>(h.itf, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> p.codusu, p.ano4, p.trimestre, p.nro_hogar;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+1 fila
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+codusu
+</th>
+<th style="text-align:left;">
+ano4
+</th>
+<th style="text-align:left;">
+trimestre
+</th>
+<th style="text-align:left;">
+nro_hogar
+</th>
+<th style="text-align:left;">
+itf_archivo_hogares
+</th>
+<th style="text-align:left;">
+itf_archivo_personas
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+TQRMNOQQWHJMKSCDEGJBF00793251
+</td>
+<td style="text-align:left;">
+2023
+</td>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+1900000
+</td>
+<td style="text-align:left;">
+1500000
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Un hogar, en el cuarto trimestre de 2023, tiene dos ingresos distintos según el archivo que se mire. ¿Cuál es el verdadero? Con los datos guardados una sola vez, esa pregunta no podría aparecer.</p>
+<p>El otro caso es un atributo derivado. <code>IX_TOT</code> dice cuántos miembros tiene el hogar, algo que también se puede contar:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> h.codusu,</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>       h.ano4,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>       h.trimestre,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>       h.nro_hogar,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>       h.ix_tot,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>       <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> personas_en_la_base,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>       h.itf,</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>       h.ipcf</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares h</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="kw">INNER</span> <span class="kw">JOIN</span> stg_personas p <span class="kw">ON</span> p.codusu <span class="op">=</span> h.codusu <span class="kw">AND</span> p.ano4 <span class="op">=</span> h.ano4</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>                         <span class="kw">AND</span> p.trimestre <span class="op">=</span> h.trimestre <span class="kw">AND</span> p.nro_hogar <span class="op">=</span> h.nro_hogar</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> h.codusu, h.ano4, h.trimestre, h.nro_hogar, h.ix_tot, h.itf, h.ipcf</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="kw">HAVING</span> h.ix_tot:<span class="ch">:integer</span> <span class="op">&lt;&gt;</span> <span class="fu">COUNT</span>(<span class="op">*</span>);</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+1 fila
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+codusu
+</th>
+<th style="text-align:left;">
+ano4
+</th>
+<th style="text-align:left;">
+trimestre
+</th>
+<th style="text-align:left;">
+nro_hogar
+</th>
+<th style="text-align:left;">
+ix_tot
+</th>
+<th style="text-align:right;">
+personas_en_la_base
+</th>
+<th style="text-align:left;">
+itf
+</th>
+<th style="text-align:left;">
+ipcf
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+TQRMNOPYUHKLLMCDEHIBB00654657
+</td>
+<td style="text-align:left;">
+2021
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:left;">
+90000
+</td>
+<td style="text-align:left;">
+30000
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>En un hogar de 2021, <code>IX_TOT</code> dice 4 pero hay 3 personas. El propio INDEC calculó el ingreso per cápita dividiendo por 3 (90.000 / 3 = 30.000), o sea, contando. Por eso en nuestra base la cantidad de miembros no se guarda: se cuenta.</p>
+</section>
+<section id="del-staging-al-modelo" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="del-staging-al-modelo"><span class="header-section-number">5.6</span> Del staging al modelo</h2>
+<p>Con <code>INSERT ... SELECT</code> las filas pasan de las tablas de staging a las definitivas, convertidas y limpias. El orden importa por las claves foráneas: primero viviendas, después hogares, al final personas.</p>
+<p>Las viviendas son los valores distintos de <code>codusu</code>, cada uno con su aglomerado:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">INSERT</span> <span class="kw">INTO</span> viviendas (codusu, id_aglomerado)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">DISTINCT</span> codusu,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>       aglomerado:<span class="ch">:smallint</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Los hogares necesitan tres arreglos además de convertir tipos:</p>
+<ul>
+<li><code>II7</code> vale 0 en algunos hogares, y 0 no es un código del diseño de registro: lo guardamos como <code>NULL</code>.</li>
+<li>Algunos montos traen coma decimal; <code>REPLACE</code> la cambia por punto antes de convertir a <code>numeric</code>, que además entiende la notación científica.</li>
+<li>Un hogar que no respondió sus ingresos figura con <code>ITF</code> en 0 y <code>PONDIH</code> en 0. Ese cero no es un ingreso de cero pesos: es un dato que falta, y en SQL un dato que falta es <code>NULL</code>.</li>
+</ul>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">INSERT</span> <span class="kw">INTO</span> hogares (codusu, anio, trimestre, nro_hogar, id_tenencia,</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                     ingreso_total_familiar, pondera, pondih)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> codusu,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>       ano4:<span class="ch">:smallint</span>,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>       trimestre:<span class="ch">:smallint</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>       nro_hogar:<span class="ch">:smallint</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>       <span class="fu">NULLIF</span>(ii7, <span class="st">'0'</span>):<span class="ch">:smallint</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>       <span class="cf">CASE</span> <span class="cf">WHEN</span> <span class="kw">REPLACE</span>(itf, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span> <span class="op">=</span> <span class="dv">0</span> <span class="kw">AND</span> pondih <span class="op">=</span> <span class="st">'0'</span> <span class="cf">THEN</span> <span class="kw">NULL</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">ELSE</span> <span class="kw">REPLACE</span>(itf, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>       <span class="cf">END</span>,</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>       pondera:<span class="ch">:integer</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>       pondih:<span class="ch">:integer</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_hogares;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>En las personas, la edad -1 significa «menos de un año» y pasa a 0, y el código -9 de los ingresos (no sabe o no responde) pasa a <code>NULL</code>:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">INSERT</span> <span class="kw">INTO</span> personas (codusu, anio, trimestre, nro_hogar, componente,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                      id_parentesco, sexo, edad, id_nivel_educativo,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                      id_condicion_actividad, ingreso_ocupacion_principal,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                      ingreso_total_individual)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> codusu,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>       ano4:<span class="ch">:smallint</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>       trimestre:<span class="ch">:smallint</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>       nro_hogar:<span class="ch">:smallint</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>       componente:<span class="ch">:smallint</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>       ch03:<span class="ch">:smallint</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>       ch04:<span class="ch">:smallint</span>,</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>       <span class="fu">GREATEST</span>(ch06:<span class="ch">:smallint</span>, <span class="dv">0</span>),</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>       nivel_ed:<span class="ch">:smallint</span>,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>       estado:<span class="ch">:smallint</span>,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>       <span class="fu">NULLIF</span>(<span class="kw">REPLACE</span>(p21, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span>, <span class="op">-</span><span class="dv">9</span>),</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>       <span class="fu">NULLIF</span>(<span class="kw">REPLACE</span>(p47t, <span class="st">','</span>, <span class="st">'.'</span>):<span class="ch">:numeric</span>, <span class="op">-</span><span class="dv">9</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> stg_personas;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Mientras se insertan las filas, PostgreSQL controla cada restricción del capítulo 4: que el hogar exista para cada persona, que los códigos estén en sus catálogos, que el trimestre vaya de 1 a 4. Si un solo dato no cumple, el <code>INSERT</code> entero se cancela.</p>
+</section>
+<section id="control-final" class="level2" data-number="5.7">
+<h2 data-number="5.7" class="anchored" data-anchor-id="control-final"><span class="header-section-number">5.7</span> Control final</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'viviendas'</span> <span class="kw">AS</span> tabla, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">AS</span> filas <span class="kw">FROM</span> viviendas</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">UNION</span> <span class="kw">ALL</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'hogares'</span>, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> hogares</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="kw">UNION</span> <span class="kw">ALL</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="st">'personas'</span>, <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">FROM</span> personas;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+<table class="table table-sm">
+<caption>
+3 filas
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+tabla
+</th>
+<th style="text-align:right;">
+filas
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+viviendas
+</td>
+<td style="text-align:right;">
+196057
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+hogares
+</td>
+<td style="text-align:right;">
+551081
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+personas
+</td>
+<td style="text-align:right;">
+1634288
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Las filas coinciden con las de staging: 551.081 hogares y 1.634.288 personas, en 196.057 viviendas. El staging ya cumplió su función:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">DROP</span> <span class="kw">TABLE</span> stg_hogares, stg_personas;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">ANALYZE</span>;</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>ANALYZE</code> actualiza las estadísticas que usa PostgreSQL para decidir cómo ejecutar cada consulta. Conviene correrlo después de una carga grande.</p>
+</section>
+<section id="sec-scripts" class="level2" data-number="5.8">
+<h2 data-number="5.8" class="anchored" data-anchor-id="sec-scripts"><span class="header-section-number">5.8</span> Los scripts</h2>
+<p>Todo lo que hicimos para armar la base está también en cuatro scripts, uno por grupo de tablas. Sirven para rehacerla sin ir bloque por bloque, entera o por partes:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Script</th>
+<th>Qué hace</th>
+<th>Dónde se corre</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="sql/01_codigos.sql" download="01_codigos.sql"><code>01_codigos.sql</code></a></td>
+<td>Crea regiones, aglomerados y catálogos, con sus datos</td>
+<td><em>Query Tool</em> o psql</td>
+</tr>
+<tr class="even">
+<td><a href="sql/02_hogares.sql" download="02_hogares.sql"><code>02_hogares.sql</code></a></td>
+<td>Carga <code>hogares.csv</code> y arma <code>viviendas</code> y <code>hogares</code></td>
+<td>psql</td>
+</tr>
+<tr class="odd">
+<td><a href="sql/03_personas.sql" download="03_personas.sql"><code>03_personas.sql</code></a></td>
+<td>Carga <code>personas.csv</code> y arma <code>personas</code></td>
+<td>psql</td>
+</tr>
+<tr class="even">
+<td><a href="sql/04_vistas.sql" download="04_vistas.sql"><code>04_vistas.sql</code></a></td>
+<td>Crea las vistas del capítulo 6</td>
+<td><em>Query Tool</em> o psql</td>
+</tr>
+</tbody>
+</table>
+<p>Los que cargan archivos usan <code>\copy</code>, así que van en psql. Guardá los scripts en la carpeta <code>eph</code>, junto a los CSV. En psql, <code>\c</code> te conecta a la base, <code>\cd</code> te lleva a la carpeta y <code>\i</code> ejecuta cada script:</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true" href="">Windows</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false" href="">Mac</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>\c eph</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>\cd C:<span class="op">/</span>Users<span class="op">/</span>ana<span class="op">/</span>Downloads<span class="op">/</span>eph</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">01</span>_codigos.sql</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">02</span>_hogares.sql</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">03</span>_personas.sql</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">04</span>_vistas.sql</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode sql code-with-copy"><code class="sourceCode sql"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>\c eph</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>\cd <span class="op">/</span>Users<span class="op">/</span>ana<span class="op">/</span>Downloads<span class="op">/</span>eph</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">01</span>_codigos.sql</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">02</span>_hogares.sql</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">03</span>_personas.sql</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>\i <span class="dv">04</span>_vistas.sql</span></code></pre></div><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Barras en <code>\cd</code>
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>En <code>\cd</code>, a diferencia de <code>\copy</code>, las barras invertidas no funcionan: la ruta va con barras comunes, como en el ejemplo. Si tiene espacios, entre comillas simples.</p>
+</div>
+</div>
+<p>Para correr los cuatro de una vez está <a href="sql/eph_completo.sql" download="eph_completo.sql"><code>eph_completo.sql</code></a>: después del <code>\cd</code>, <code>\i eph_completo.sql</code>. Tarda un par de minutos.</p>
+<p>Cada script empieza borrando lo que va a crear, así que se puede volver a correr. Pero el <code>DROP ... CASCADE</code> del principio también se lleva las claves foráneas y las vistas que dependían de esas tablas. Por eso, si volvés a correr un script, corré también los que le siguen.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./04-fisico.html" class="pagination-link" aria-label="Modelo físico">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./06-consultas.html" class="pagination-link" aria-label="Consultas">
+        <span class="nav-page-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>Modelado y Gestión de Datos · UNTREF · 2026</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Datos: Encuesta Permanente de Hogares, INDEC</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>

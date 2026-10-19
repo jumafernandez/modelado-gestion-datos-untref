@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.19">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>3&nbsp; Modelo lógico – De la EPH a PostgreSQL</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./04-fisico.html" rel="next">
+<link href="./02-conceptual.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-389c8454c5e4e6bc782f9b651a3c44a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b44f78f901b27984fc33087947597b98.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No se han encontrado resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar docked quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./03-logico.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Alternar barra lateral" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Buscar" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">De la EPH a PostgreSQL</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Buscar"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Presentación</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-dataset.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">El dataset y las preguntas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-conceptual.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-logico.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-fisico.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-carga.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Carga masiva</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-consultas.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Consultas</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Apéndices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Alternar sección">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-csv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Cómo se armaron los CSV</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apendice-sitio.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Cómo se generó este sitio</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">En esta página</h2>
+   
+  <ul class="collapse">
+  <li><a href="#heurística-de-derivación" id="toc-heurística-de-derivación" class="nav-link active" data-scroll-target="#heurística-de-derivación"><span class="header-section-number">3.1</span> Heurística de derivación</a></li>
+  <li><a href="#formas-normales-de-codd" id="toc-formas-normales-de-codd" class="nav-link" data-scroll-target="#formas-normales-de-codd"><span class="header-section-number">3.2</span> Formas normales de Codd</a></li>
+  <li><a href="#catálogos" id="toc-catálogos" class="nav-link" data-scroll-target="#catálogos"><span class="header-section-number">3.3</span> Catálogos</a></li>
+  <li><a href="#el-esquema-lógico" id="toc-el-esquema-lógico" class="nav-link" data-scroll-target="#el-esquema-lógico"><span class="header-section-number">3.4</span> El esquema lógico</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-logico" class="quarto-section-identifier"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Modelo lógico</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>En el diseño lógico el DER se transforma en un conjunto de tablas normalizadas, como vimos en la presentación C02-3. Llegamos a esas tablas por dos caminos que se controlan entre sí: la heurística de derivación aplicada al DER y las formas normales de Codd aplicadas a los archivos tal como los publica INDEC.</p>
+<section id="heurística-de-derivación" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="heurística-de-derivación"><span class="header-section-number">3.1</span> Heurística de derivación</h2>
+<p><strong>Transformación de entidades en tablas.</strong> Cada entidad del DER es una tabla y sus atributos son columnas. Seguimos la nomenclatura de C02-3: tablas en plural y en minúsculas, sin tildes y con guion bajo (<code>regiones</code>, <code>aglomerados</code>, <code>viviendas</code>, <code>hogares</code>, <code>personas</code>).</p>
+<p><strong>Incorporación de claves primarias.</strong> La clave primaria sale del identificador de cada entidad. En regiones y aglomerados es el código de INDEC, que llamamos <code>id</code>; en viviendas es <code>codusu</code>.</p>
+<p><strong>Tratamiento de relaciones 1:N.</strong> La clave primaria de la tabla del lado 1 pasa como clave foránea a la tabla del lado N. Los aglomerados guardan <code>id_region (FK)</code> y las viviendas, <code>id_aglomerado (FK)</code>: el nombre es <code>id_</code> más la entidad en singular, como <code>id_cliente (FK)</code> en el ejemplo de clientes y pedidos.</p>
+<p><strong>Entidades débiles.</strong> C02-3 no las trata aparte, pero la idea es la misma: la clave primaria de la entidad de identificación pasa como clave foránea y, además, forma parte de la clave primaria, junto con el discriminador. La clave de <code>hogares</code> es <code>codusu (FK)</code> más <code>anio</code>, <code>trimestre</code> y <code>nro_hogar</code>; la de <code>personas</code>, la clave completa del hogar (FK) más <code>componente</code>.</p>
+<p><strong>Atributos derivados.</strong> No se guardan: se calculan cuando se necesitan. En el capítulo 6 lo hacemos con una vista.</p>
+</section>
+<section id="formas-normales-de-codd" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="formas-normales-de-codd"><span class="header-section-number">3.2</span> Formas normales de Codd</h2>
+<p>Supongamos que en vez de diseñar importamos <code>personas.csv</code> tal cual, como una sola tabla. En el capítulo 1 vimos que repite datos del hogar y de la vivienda; ahora le ponemos nombre a ese problema. Su clave primaria es (<code>codusu</code>, <code>ano4</code>, <code>trimestre</code>, <code>nro_hogar</code>, <code>componente</code>).</p>
+<p>Para normalizar necesitamos las <strong>dependencias funcionales</strong>. <code>X → Y</code> se lee «X determina Y»: si dos filas coinciden en X, coinciden en Y. Del dominio y del diseño de registro salen estas:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dependencia</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>codusu → aglomerado</code></td>
+<td>Una vivienda no cambia de lugar</td>
+</tr>
+<tr class="even">
+<td><code>aglomerado → region</code></td>
+<td>Cada aglomerado está en una región</td>
+</tr>
+<tr class="odd">
+<td><code>codusu, ano4, trimestre, nro_hogar → pondera, itf, ipcf</code></td>
+<td>Son datos del hogar, iguales para todos sus integrantes</td>
+</tr>
+<tr class="even">
+<td><code>clave completa → ch03, ch04, ch06, nivel_ed, estado, p21, p47t</code></td>
+<td>Son datos de cada persona</td>
+</tr>
+</tbody>
+</table>
+<section id="primera-forma-normal" class="level3">
+<h3 class="anchored" data-anchor-id="primera-forma-normal">Primera forma normal</h3>
+<p>Una tabla está en 1FN si todos sus atributos contienen valores atómicos, y se parte de que tiene una clave primaria. Los archivos de INDEC ya cumplen la 1FN: cada celda tiene un único valor y no hay grupos de columnas repetidos.</p>
+</section>
+<section id="segunda-forma-normal" class="level3">
+<h3 class="anchored" data-anchor-id="segunda-forma-normal">Segunda forma normal</h3>
+<p>La 2FN pide que todo atributo no clave dependa de la clave primaria completa (dependencia funcional total), no de una parte. El archivo de personas no la cumple. Aplicamos el método de C02-3:</p>
+<ol type="1">
+<li><strong>Determinar las dependencias que no cumplen con la 2FN.</strong> <code>codusu, ano4, trimestre, nro_hogar → pondera, itf, ipcf</code>, porque son datos del hogar y se repiten en cada integrante, y <code>codusu → region, aglomerado</code>, porque son datos de la vivienda.</li>
+<li><strong>Construir otra entidad cuya clave primaria sea esa parte de la clave.</strong> Una tabla de hogares, con clave (<code>codusu</code>, <code>ano4</code>, <code>trimestre</code>, <code>nro_hogar</code>), y una de viviendas, con clave <code>codusu</code>.</li>
+<li><strong>Trasladar los atributos que dependen de esa parte y suprimirlos de la tabla original.</strong> <code>pondera</code>, <code>itf</code> e <code>ipcf</code> pasan a hogares; <code>region</code> y <code>aglomerado</code>, a viviendas.</li>
+</ol>
+<p>El archivo de hogares tiene el mismo problema con <code>region</code> y <code>aglomerado</code>, y se resuelve igual.</p>
+</section>
+<section id="tercera-forma-normal" class="level3">
+<h3 class="anchored" data-anchor-id="tercera-forma-normal">Tercera forma normal</h3>
+<p>La 3FN pide que ningún atributo no clave dependa de otro atributo no clave (dependencia transitiva). Quedan dos casos.</p>
+<p>En viviendas, <code>codusu → aglomerado</code> y <code>aglomerado → region</code>: la región depende de la vivienda a través del aglomerado. Con el método de C02-3:</p>
+<ol type="1">
+<li><strong>Determinar la dependencia transitiva.</strong> <code>aglomerado → region</code>.</li>
+<li><strong>Construir otra entidad cuya clave primaria sea el atributo que determina a los demás.</strong> Una tabla de aglomerados, con clave <code>aglomerado</code>.</li>
+<li><strong>Trasladar los atributos y suprimirlos de la tabla original</strong>, dejando el atributo que pasó a ser clave de la nueva tabla. <code>region</code> pasa a aglomerados y en viviendas queda <code>aglomerado</code>, ahora como clave foránea. Los nombres de las regiones, que vienen del diseño de registro, van a su propia tabla.</li>
+</ol>
+<p>En hogares, <code>ipcf</code> se calcula con <code>itf</code> y la cantidad de miembros, dos atributos no clave. Es el atributo derivado del modelo conceptual: no se guarda. Lo mismo vale para <code>IX_TOT</code>, la cantidad de miembros, que se obtiene contando las personas del hogar.</p>
+<p>Los dos caminos llegan a las mismas tablas, y esa coincidencia es una buena señal de que el diseño está bien.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>¿Y si la redundancia no molesta?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Guardar un dato dos veces abre la puerta a que las dos copias digan cosas distintas. No es un riesgo teórico: en el capítulo 5 comprobamos estas dependencias con SQL y encontramos dos hogares donde los archivos de INDEC ya se contradicen.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="catálogos" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="catálogos"><span class="header-section-number">3.3</span> Catálogos</h2>
+<p>Las variables codificadas (tenencia, parentesco, nivel educativo, condición de actividad) guardan un número cuyo significado está en el diseño de registro. Las implementamos como <strong>tablas de catálogo</strong>, con el código como <code>id</code> y su <code>descripcion</code>, y una clave foránea desde la tabla que las usa: <code>id_tenencia (FK)</code>, <code>id_parentesco (FK)</code>, etc. Así la base solo acepta códigos válidos y la etiqueta está escrita en un único lugar.</p>
+<p>Dos decisiones más:</p>
+<ul>
+<li><strong>El sexo no lleva catálogo.</strong> Tiene dos valores fijos; alcanza con una restricción <code>CHECK</code> en el modelo físico.</li>
+<li><strong>Los niveles educativos llevan una columna <code>orden</code>.</strong> Los códigos no están ordenados: el 7 es «sin instrucción», el nivel más bajo. Para ordenar de menor a mayor en una consulta hace falta ese dato, y es un dato del catálogo.</li>
+</ul>
+</section>
+<section id="el-esquema-lógico" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="el-esquema-lógico"><span class="header-section-number">3.4</span> El esquema lógico</h2>
+<p>Como en C02-3, cada tabla es una caja con la clave primaria subrayada y las claves foráneas marcadas con (FK):</p>
+<div class="esquema-logico">
+  <div class="tabla-logica"><div class="tl-nombre">regiones</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">nombre</div></div>
+  <div class="tabla-logica"><div class="tl-nombre">aglomerados</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">nombre</div>
+    <div class="tl-col">id_region <span class="tl-fk">(FK)</span></div></div>
+  <div class="tabla-logica"><div class="tl-nombre">viviendas</div>
+    <div class="tl-col tl-pk">codusu</div>
+    <div class="tl-col">id_aglomerado <span class="tl-fk">(FK)</span></div></div>
+  <div class="tabla-logica"><div class="tl-nombre">hogares</div>
+    <div class="tl-col tl-pk">codusu <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col tl-pk">anio</div><div class="tl-col tl-pk">trimestre</div>
+    <div class="tl-col tl-pk">nro_hogar</div>
+    <div class="tl-col">id_tenencia <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col">ingreso_total_familiar</div><div class="tl-col">pondera</div>
+    <div class="tl-col">pondih</div></div>
+  <div class="tabla-logica"><div class="tl-nombre">personas</div>
+    <div class="tl-col tl-pk">codusu <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col tl-pk">anio <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col tl-pk">trimestre <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col tl-pk">nro_hogar <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col tl-pk">componente</div>
+    <div class="tl-col">id_parentesco <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col">sexo</div><div class="tl-col">edad</div>
+    <div class="tl-col">id_nivel_educativo <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col">id_condicion_actividad <span class="tl-fk">(FK)</span></div>
+    <div class="tl-col">ingreso_ocupacion_principal</div>
+    <div class="tl-col">ingreso_total_individual</div></div>
+</div>
+<div class="esquema-logico">
+  <div class="tabla-logica tl-catalogo"><div class="tl-nombre">tenencias</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">descripcion</div></div>
+  <div class="tabla-logica tl-catalogo"><div class="tl-nombre">parentescos</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">descripcion</div></div>
+  <div class="tabla-logica tl-catalogo"><div class="tl-nombre">niveles_educativos</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">descripcion</div>
+    <div class="tl-col">orden</div></div>
+  <div class="tabla-logica tl-catalogo"><div class="tl-nombre">condiciones_actividad</div>
+    <div class="tl-col tl-pk">id</div><div class="tl-col">descripcion</div></div>
+</div>
+<p>En la segunda fila están los catálogos. En <code>personas</code>, las cuatro primeras columnas son a la vez parte de la clave primaria y la clave foránea hacia <code>hogares</code>, igual que en la tabla <code>libros_por_prestamo</code> del ejemplo de la biblioteca.</p>
+<p>Usamos <code>anio</code> en lugar de <code>año</code>: la ñ en nombres de columnas funciona, pero trae problemas con algunas herramientas y teclados. Los tipos de datos todavía no aparecen: elegirlos es parte del modelo físico, que viene en el capítulo siguiente.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copiado");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copiado");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./02-conceptual.html" class="pagination-link" aria-label="Modelo conceptual">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Modelo conceptual</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./04-fisico.html" class="pagination-link" aria-label="Modelo físico">
+        <span class="nav-page-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Modelo físico</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>Modelado y Gestión de Datos · UNTREF · 2026</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>Datos: Encuesta Permanente de Hogares, INDEC</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
