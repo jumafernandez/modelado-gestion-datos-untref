@@ -78,7 +78,7 @@ Para crear un usuario:
 3. En **Built-in Role**, elegir los permisos: **Atlas admin** (administra todo), **Read and write to any database** (lee y modifica los datos) u **Only read any database** (solo lee). Con **Specific Privileges** se pueden limitar los permisos a una sola base.
 4. Hacer clic en **Add User**.
 
-Para habilitar direcciones, en **Network Access** se hace clic en **Add IP Address**. **Add Current IP Address** suma la dirección de tu conexión, y **Allow Access from Anywhere** habilita cualquier dirección (`0.0.0.0/0`). Esta última hace falta para conectarse desde Google Colab, que cambia de IP en cada sesión. A partir de ahí, lo que protege el cluster son los usuarios y sus contraseñas.
+Para habilitar direcciones, en **Network Access** se hace clic en **Add IP Address** y, en **Access List Entry**, se escribe la dirección que se quiere habilitar. La entrada `0.0.0.0/0` habilita cualquier dirección: hace falta para conectarse desde Google Colab, que cambia de IP en cada sesión. En **Comment** conviene anotar para qué es cada entrada y, si la opción de entrada temporal queda apagada, la dirección no vence. A partir de ahí, lo que protege el cluster son los usuarios y sus contraseñas.
 
 ## Desde R y Python
 
