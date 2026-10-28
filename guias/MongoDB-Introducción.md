@@ -6,7 +6,7 @@ Trabajamos con la Encuesta Permanente de Hogares (INDEC) en formato documento: c
 
 ## Los datos
 
-El archivo [eph_hogares_2026t1.zip](../data/eph_hogares_2026t1.zip) tiene 15.447 hogares con 43.739 personas. Hay que descomprimirlo: adentro está `eph_hogares_2026t1.json`, con un documento por línea. Así se ve un hogar de Gran Rosario:
+El archivo [eph_hogares_2026t1.json](../data/eph_hogares_2026t1.json) tiene 15.447 hogares con 43.739 personas, un documento por línea. En GitHub se descarga con el botón *Download raw file*. Así se ve un hogar de Gran Rosario:
 
 ```json
 {
