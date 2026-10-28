@@ -2,3 +2,4 @@
 data/backup_exportaciones_unlu.backup
 codigo/anonimizacion_db_universidad.sql
 .DS_Store
+atlas-credentials.env

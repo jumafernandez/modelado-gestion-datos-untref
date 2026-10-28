@@ -74,6 +74,8 @@ MongoDB Atlas es el servicio oficial de MongoDB en la nube y tiene un cluster gr
 3. Crear un usuario de base de datos, con su contraseña, y habilitar el acceso desde tu dirección IP. Atlas propone los dos pasos al crear el cluster.
 4. En el cluster, elegir **Connect** y después **Compass**. Atlas muestra una cadena de conexión que empieza con `mongodb+srv://`; se copia, se completa con la contraseña del usuario y se pega en Compass en lugar de `mongodb://localhost:27017`.
 
+La guía [Un cluster gratuito en MongoDB Atlas](MongoDB-Atlas.md) muestra cada paso con capturas, y también cómo cargar los datos de la EPH en el cluster.
+
 ## Respaldo, restauración e importación desde la terminal
 
 Las herramientas de línea de comandos de MongoDB (*Database Tools*) se instalan junto con el servidor en macOS y Ubuntu. En Windows se descargan aparte desde la página de [MongoDB Database Tools](https://www.mongodb.com/try/download/database-tools); después de instalarlas, hay que agregar su carpeta `bin` (por ejemplo, `C:\Program Files\MongoDB\Tools\100\bin`) a la variable de entorno `PATH`, o ejecutar los comandos desde esa carpeta.

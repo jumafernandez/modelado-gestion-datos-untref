@@ -14,7 +14,7 @@ library(mongolite)
 
 
 # 1. Conexión con la colección hogares de la base eph
-hogares <- mongo(collection = "hogares", db = "eph", url = "mongodb://localhost:27017")
+hogares <- mongo(collection = "hogares", db = "eph-trimestre", url = "mongodb://localhost:27017")
 hogares$count()                  # cantidad de hogares
 
 
