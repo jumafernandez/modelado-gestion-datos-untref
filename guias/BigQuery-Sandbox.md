@@ -98,6 +98,33 @@ ORDER BY tasa_desocupacion DESC;
 
 Gran Buenos Aires da 8,7%, el mismo resultado que obtuvimos con SQL en PostgreSQL, con MongoDB y con R.
 
+## 6. Las particiones
+
+Además de leer solo las columnas que usa, BigQuery puede leer solo una parte de las filas. Una **tabla particionada** está dividida en partes según el valor de una columna, casi siempre una fecha. Si la consulta filtra por esa columna, BigQuery lee solo las particiones que necesita. Es la misma idea del dataset de Parquet con una carpeta por región que armamos en R.
+
+Un ejemplo es el dataset público `google_trends.international_top_terms`, con las búsquedas más populares de Google en muchos países. Cada día suma una partición con las 25 búsquedas principales de la última semana en cada región, junto con su historia semanal de los últimos cinco años. En la pestaña **Detalles** de la tabla se ve que está particionada por día en el campo `refresh_date`, la fecha de cada actualización:
+
+<img src="./imgs/bigquery-06-particionada.png" alt="Detalles de la tabla international_top_terms, particionada por día en el campo refresh_date" width="600px"/>
+
+Esta consulta muestra las 10 búsquedas más populares en Argentina en la última actualización. Una misma búsqueda se repite en muchas filas, una por provincia y por semana de su historia, así que `DISTINCT` deja una sola:
+
+```sql
+SELECT DISTINCT refresh_date AS actualizacion, rank AS puesto, term AS busqueda
+FROM `bigquery-public-data.google_trends.international_top_terms`
+WHERE country_name = 'Argentina'
+  AND refresh_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 4 DAY)
+ORDER BY actualizacion DESC, puesto
+LIMIT 10;
+```
+
+La condición sobre `refresh_date` se queda con las particiones de los últimos cuatro días, porque cada actualización tarda uno o dos días en llegar. Antes de ejecutar, el mensaje indica cuánto va a procesar la consulta: en la captura, **862.92 MB**. Si se borra esa línea, sin ejecutar la consulta, el mensaje cambia a **8.8 GB**, unas diez veces más, porque BigQuery tendría que leer todas las particiones.
+
+<img src="./imgs/bigquery-07-tendencias.png" alt="Consulta de las búsquedas más populares en Argentina, con su resultado" width="750px"/>
+
+El resultado cambia todos los días. En la captura, la actualización del 1 de noviembre de 2026 está llena de partidos de fútbol.
+
+En una tabla particionada, filtrar por la columna de partición es la forma más directa de pagar menos: BigQuery ni siquiera abre las demás particiones.
+
 Todas las consultas quedan registradas en **Historial de trabajos**, en el Explorador, con los datos que procesó cada una.
 
 _Última actualización: noviembre de 2026._
