@@ -28,7 +28,7 @@ Casi todo tiene un equivalente en lo que ya usamos:
 | El panel de objetos de pgAdmin | **Catalog** |
 | Una notebook de Colab | **Notebook**, que corre en el cómputo de Databricks |
 | La consola de BigQuery | **SQL Editor** |
-| Un archivo Parquet consultado con DuckDB | Una tabla Delta: Parquet más su historial |
+| Un archivo Parquet | Una tabla Delta: Parquet más su historial |
 | Un tablero de Power BI | **Dashboards** |
 
 ## 2. Lo que hay en la pantalla
@@ -217,5 +217,5 @@ Todo lo que armamos queda guardado en la carpeta personal del **Workspace**: la 
 - Un lakehouse guarda los datos en archivos abiertos y les suma tablas, tipos, transacciones e historial. Una tabla Delta es un conjunto de archivos Parquet más un registro de cambios.
 - La arquitectura medallón separa los datos en capas: bronce para lo que llega, plata para lo limpio y oro para el análisis.
 - El modelo estrella sigue siendo la forma de organizar los datos para el análisis, en un data warehouse o en un lakehouse.
-- Databricks separa los datos del cómputo, igual que BigQuery. DuckDB, en cambio, corre en la propia computadora.
+- Databricks separa los datos del cómputo, igual que BigQuery. Con un archivo Parquet en la computadora, en cambio, los datos y el cómputo están en el mismo lugar.
 - La ingesta y la consulta son momentos distintos, con herramientas y cómputo distintos.

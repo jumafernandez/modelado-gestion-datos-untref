@@ -1,6 +1,6 @@
 # Un data warehouse en la nube con BigQuery
 
-BigQuery es el data warehouse de Google Cloud. Como DuckDB, guarda los datos por columnas y se consulta con SQL, pero corre en los servidores de Google: no hay nada que instalar, se usa desde el navegador y cada consulta se reparte entre muchas máquinas. Se paga por los datos que se guardan y por los que lee cada consulta.
+BigQuery es el data warehouse de Google Cloud. Guarda los datos por columnas, como Parquet, y se consulta con SQL, pero corre en los servidores de Google: no hay nada que instalar, se usa desde el navegador y cada consulta se reparte entre muchas máquinas. Se paga por los datos que se guardan y por los que lee cada consulta.
 
 Para el curso alcanza con su modo gratuito, el **sandbox**: se activa con una cuenta de Google, no pide tarjeta de crédito y permite guardar hasta 10 GB y consultar hasta 1 TB por mes. Las tablas que se cargan vencen a los 60 días.
 
@@ -38,9 +38,9 @@ Cada consulta lee solo las columnas que usa. Si en el editor se escribe `SELECT 
 
 ## 3. Cargar la EPH
 
-Cargamos los hogares de la EPH desde un archivo Parquet, el formato que trabajamos con DuckDB y R.
+Cargamos los hogares de la EPH desde un archivo Parquet, el formato por columnas que vimos al comenzar la unidad.
 
-1. Descargar el archivo [eph_hogares_2026t1.parquet](../data/eph_hogares_2026t1.parquet) con el botón *Download raw file*. Tiene los mismos datos que el JSON que usamos con MongoDB y DuckDB, en menos de 0,5 MB.
+1. Descargar el archivo [eph_hogares_2026t1.parquet](../data/eph_hogares_2026t1.parquet) con el botón *Download raw file*. Tiene los mismos datos que el JSON que usamos con MongoDB, en menos de 0,5 MB.
 2. Crear un conjunto de datos, que agrupa tablas como un esquema de PostgreSQL. En el **Explorador**, debajo del proyecto, hacer clic en **Conjuntos de datos** y después en **Crear un conjunto de datos**. Escribir `eph` en **ID de conjunto de datos** y hacer clic en **Crear conjunto de datos**.
 
 <img src="./imgs/bigquery-02-conjunto.png" alt="Panel para crear el conjunto de datos eph" width="450px"/>
@@ -53,9 +53,9 @@ Cargamos los hogares de la EPH desde un archivo Parquet, el formato que trabajam
 
 No hace falta definir las columnas. Como avisa el formulario, el archivo fuente define el esquema: Parquet guarda adentro el nombre y el tipo de cada columna.
 
-## 4. La consulta de DuckDB, en BigQuery
+## 4. Hogares por región
 
-En una consulta nueva, escribir la misma consulta de la guía de DuckDB y hacer clic en **Ejecutar**:
+En una consulta nueva, contar los hogares de cada región y hacer clic en **Ejecutar**:
 
 ```sql
 SELECT region, COUNT(*) AS hogares
@@ -64,7 +64,7 @@ GROUP BY region
 ORDER BY hogares DESC;
 ```
 
-El resultado es el mismo:
+Si hicieron la guía opcional de DuckDB, el resultado es el mismo:
 
 | region | hogares |
 |---|---:|
